@@ -79,11 +79,16 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 _getLocation(); // Update location on button press
               },
-              child: Icon(Icons.location_searching),
+              child: isLocationFound
+                  ? Icon(Icons.location_searching, color: Colors.white, size: 36)
+                  : Icon(Icons.my_location),
+              backgroundColor: isLocationFound ? Colors.deepPurple : null,
             ),
           ),
         ],
       ),
     );
   }
+
+  bool get isLocationFound => _currentLocation != null;
 }
