@@ -51,7 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    LatLng.LatLng initialLocation = _currentLocation ?? LatLng.LatLng(34.6275, -84.1935);
+    LatLng.LatLng initialLocation = _currentLocation ?? LatLng.LatLng(36.6275, -84.1935);
 
     return Scaffold(
       body: Stack(
