@@ -70,6 +70,21 @@ class _MyHomePageState extends State<MyHomePage> {
                   'id': 'mapbox.mapbox-terrain-v2'
                 },
               ),
+              MarkerLayer(
+                markers: _currentLocation != null
+                    ? [
+                  Marker(
+                    point: LatLng.LatLng(
+                      _currentLocation!.latitude,
+                      _currentLocation!.longitude,
+                    ),
+                    width: 80,
+                    height: 80,
+                    child: Icon(Icons.location_on),
+                  ),
+                ]
+                    : [],
+              ),
             ],
           ),
           Positioned(
@@ -80,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _getLocation(); // Update location on button press
               },
               child: isLocationFound
-                  ? Icon(Icons.location_searching, color: Colors.white, size: 36)
+                  ? Icon(Icons.my_location, color: Colors.white, size: 36)
                   : Icon(Icons.my_location),
               backgroundColor: isLocationFound ? Colors.deepPurple : null,
             ),
