@@ -6,9 +6,14 @@
       <excludeFolder url="file://$MODULE_DIR$/mapbox_2/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/mapbox_2/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/mapbox_2/build" />
+      <excludeFolder url="file://$MODULE_DIR$/mapbox_2/android/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/mapbox_2/linux/flutter/ephemeral" />
+      <excludeFolder url="file://$MODULE_DIR$/mapbox_2/macos/Flutter/ephemeral" />
+      <excludeFolder url="file://$MODULE_DIR$/mapbox_2/windows/flutter/ephemeral" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Dart SDK" level="project" />
+    <orderEntry type="library" name="Dart Packages" level="project" />
   </component>
 </module>
