@@ -6,7 +6,7 @@ class customAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: Colors.lightGreen[300],
       elevation: 4,
-      title: Text('TEXT THING HERE LATER'),
+      title: Text('Fox Valley Cyclists'),
       // Add other AppBar properties if needed
     );
   }
