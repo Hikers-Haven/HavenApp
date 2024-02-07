@@ -9,7 +9,7 @@ class FourthPage extends StatelessWidget{
       appBar: customAppBar(),
       backgroundColor: Colors.green[200],
       body: Center(
-        child: Text('FOURTH P A GE ???'),
+        child: Text('CYCLING STATISTICS HERE?'),
     ));
   }
 }

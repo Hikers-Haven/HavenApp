@@ -10,7 +10,7 @@ class FirstPage extends StatelessWidget{
       appBar: customAppBar(),
       backgroundColor: Colors.green[200],
       body: Center(
-        child: Text('FORUM PAGE STUFF'),
+        child: Text('TRAIL ALERTS HERE'),
     ));
   }
 }

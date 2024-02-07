@@ -9,7 +9,7 @@ class SecondPage extends StatelessWidget{
       appBar: customAppBar(),
       backgroundColor: Colors.green[200],
       body: Center(
-        child: Text('GALLERY PAGE STUFF'),
+        child: Text('POINTS OF INTEREST'),
     ));
   }
 }

@@ -10,7 +10,7 @@ class ThirdPage extends StatelessWidget{
       appBar: customAppBar(),
       backgroundColor: Colors.green[200],
       body: Center(
-        child: Text('THIRD PAGE ???'),
+        child: Text('COMMUNITY REVIEWS HERE?'),
     ));
   }
 }

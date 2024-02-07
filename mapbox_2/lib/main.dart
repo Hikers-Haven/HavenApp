@@ -69,9 +69,11 @@ class _MyHomePageState extends State<MyHomePage> {
             children: [
               DrawerHeader(
                 child: Center(
-                  child: Text(
-                    ' L O G O ? ',
-                    style: TextStyle(fontSize: 35),
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundImage: AssetImage('assets/peepoGamer.png'),
+                    // ' L O G O ? ',
+                    // style: TextStyle(fontSize: 35),
                   ),
                 ),
               ),
