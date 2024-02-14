@@ -231,7 +231,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _getLocation() async {
     try {
-      Position position = await Geolocator.getCurrentPosition();
+      // Position position = await Geolocator.getCurrentPosition();
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
       setState(() {
         _currentLocation = LatLng.LatLng(position.latitude, position.longitude);
         mapController.move(_currentLocation!, 14.0); // Adjust zoom level

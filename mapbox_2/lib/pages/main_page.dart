@@ -147,7 +147,9 @@
     @override
     void initState() {
       super.initState();
-      _getLocationPeriodically();
+      // _getLocationPeriodically();
+      _getLocation();
+
       // Example: Fetch and display the route upon initialization
       // Replace with actual start and end points of Fox River Trail or as required
       _fetchAndDisplayRoute(LatLng.LatLng(42.153641, -88.287827), LatLng.LatLng(41.685342, -88.357148));
@@ -161,20 +163,20 @@
       });
     }
 
-    void _getLocationPeriodically() {
-      // Periodically fetch the user's location every 5 seconds
-      const duration = Duration(seconds: 5);
-      Timer.periodic(duration, (timer) async {
-        try {
-          Position position = await Geolocator.getCurrentPosition();
-          setState(() {
-            _currentLocation = LatLng.LatLng(position.latitude, position.longitude);
-          });
-        } catch (e) {
-          print("Error getting location: $e");
-        }
-      });
-    }
+    // void _getLocationPeriodically() {
+    //   // Periodically fetch the user's location every 5 seconds
+    //   const duration = Duration(milliseconds: 50);
+    //   Timer.periodic(duration, (timer) async {
+    //     try {
+    //       Position position = await Geolocator.getCurrentPosition();
+    //       setState(() {
+    //         _currentLocation = LatLng.LatLng(position.latitude, position.longitude);
+    //       });
+    //     } catch (e) {
+    //       print("Error getting location: $e");
+    //     }
+    //   });
+    // }
 
     Future<void> _getLocation() async {
       try {
@@ -245,7 +247,7 @@
               bottom: 16,
               right: 16,
               child: FloatingActionButton(
-                onPressed: _recenterMap,
+                onPressed: _getLocation,
                 child: Icon(Icons.my_location),
                 backgroundColor: Colors.blue,
               ),
