@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 // Import pages for navigation
 import 'package:mapbox_2/pages/first_page.dart';
@@ -5,9 +6,16 @@ import 'package:mapbox_2/pages/second_page.dart';
 import 'package:mapbox_2/pages/third_page.dart';
 import 'package:mapbox_2/pages/fourth_page.dart';
 import 'package:mapbox_2/customAppBar.dart';
-import 'package:mapbox_2/pages/main_page.dart'; // Assuming this handles map functionalities
+import 'package:mapbox_2/pages/main_page.dart';
 
-void main() {
+import 'firebase_options.dart'; // Assuming this handles map functionalities
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 

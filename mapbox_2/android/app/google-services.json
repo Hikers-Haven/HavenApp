@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "174631897882",
+    "project_id": "bikershaven-a8289",
+    "storage_bucket": "bikershaven-a8289.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:174631897882:android:287ce2c11a767252063aa3",
+        "android_client_info": {
+          "package_name": "com.example.mapbox_2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTBZPJEaO2dccApUetXc4_YJksV_4nwHg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
