@@ -51,7 +51,7 @@
 
     Future<void> _getLocation() async {
       try {
-        Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+        Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
         setState(() {
           _currentLocation = LatLng.LatLng(position.latitude, position.longitude);
           mapController.move(_currentLocation!, 14.0); // Adjust zoom level
