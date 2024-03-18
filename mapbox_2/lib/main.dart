@@ -123,24 +123,50 @@ class AuthScreen extends StatefulWidget{
 }
 
 class _AuthScreenState extends State<AuthScreen>{
-  final bool _isLogin = false;
+  bool _isLogin = true; // Changed to true for default login screen
   bool _loading = false;
+  String _errorMessage = ''; // Track error message
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  handleSubmit() async {
+  Future<void> handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-    final email = _emailController.value.text;
-    final password = _passwordController.value.text;
+    final email = _emailController.text;
+    final password = _passwordController.text;
 
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _errorMessage = ''; // Reset error message
+    });
 
-    if (_isLogin){
-      await Auth().signInWithEmailandPassword(email, password);
-    } else{
-      await Auth().signInWithEmailandPassword(email, password);
+    try {
+      if (_isLogin) {
+        await Auth().signInWithEmailandPassword(email, password);
+      } else {
+        await Auth().registerWithEmailandPassword(email, password);
+      }
     }
+    catch (error) {
+
+      String formatErrorMessage(dynamic error) {
+        String errorMessage = error.toString();
+        // Check if the error message contains '[firebase_auth/'
+        if (errorMessage.contains('[firebase_auth/')) {
+          // Remove the error code enclosed in square brackets
+          errorMessage = errorMessage.replaceAll(RegExp(r'\[.*?\]'), '');
+        }
+        return errorMessage.trim(); // Trim any leading or trailing spaces
+      }
+      // Handle authentication errors here
+      String errorMessage = formatErrorMessage(error);
+      setState(() {
+        _errorMessage = errorMessage;
+      });
+      print('Authentication Error: $errorMessage');
+    }
+
+
 
     setState(() => _loading = false);
   }
@@ -157,12 +183,10 @@ class _AuthScreenState extends State<AuthScreen>{
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
-                    "Log in",
+                    "Log in / Register",
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)
                 ),
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,
                   validator: (value) {
@@ -182,9 +206,7 @@ class _AuthScreenState extends State<AuthScreen>{
                       )
                   ),
                 ),
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
@@ -221,6 +243,20 @@ class _AuthScreenState extends State<AuthScreen>{
                     )
                         : Text(_isLogin ? 'Login' : 'Register')
                 ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isLogin = !_isLogin; // Toggle between login and register
+                    });
+                  },
+                  child: Text(_isLogin ? 'Create an account' : 'Already have an account?'),
+                ),
+                if (_errorMessage.isNotEmpty) // Display error message if any
+                  Text(
+                    _errorMessage,
+                    style: TextStyle(color: Colors.red),
+                  ),
               ],
             ),
           ),
