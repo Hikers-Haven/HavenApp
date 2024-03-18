@@ -14,7 +14,7 @@ class FourthPage extends StatelessWidget {
       ChartData(4, 8.8),
       ChartData(5, 9.1),
       ChartData(6, 7.3),
-      ChartData(7, 6.8),
+      ChartData(7, 0.8),
     ];
 
     final List<Color> color = <Color>[];
