@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BikersHaven</string>
+    <string name="mapbox_access_token">sk.eyJ1IjoiY29saXBoYW50MDEiLCJhIjoiY2x0eXhmajEyMGp4eDJycGo5MncybXhvdCJ9.nLKWbR2KqwBtf2v-nopBQg</string>
+    <!-- Any other string resources -->
+</resources>
