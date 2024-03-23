@@ -13,6 +13,7 @@ import 'package:mapbox_2/pages/main_page.dart';
 
 import 'auth.dart';
 import 'firebase_options.dart'; // Assuming this handles map functionalities
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -145,9 +146,19 @@ class _AuthScreenState extends State<AuthScreen>{
         await Auth().signInWithEmailandPassword(email, password);
       } else {
         await Auth().registerWithEmailandPassword(email, password);
+
+        // Add user to tables
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance.collection('users')
+              .doc(user.uid)
+              .set({
+            'email': email,
+            // Add any other user data
+         });
+        }
       }
-    }
-    catch (error) {
+    } catch (error) {
 
       String formatErrorMessage(dynamic error) {
         String errorMessage = error.toString();
