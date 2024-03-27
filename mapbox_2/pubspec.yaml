@@ -18,13 +18,18 @@ dependencies:
 
   cupertino_icons: ^1.0.2
   flutter_map: ^6.1.0
-#  geolocator: ^7.6.2
-  geolocator: ^10.1.1
+  geolocator: ^10.0.1
   http: ^1.2.0
   flutter_polyline_points: ^2.0.0
   firebase_core: ^2.25.4
-
   flutter_mapbox_navigation: ^0.2.2
+  at_location_flutter: ^3.1.12
+  xml: ^6.5.0
+  speedometer: ^1.1.2
+  rxdart: ^0.27.7
+  syncfusion_flutter_gauges: ^24.2.5
+  sensors_plus: ^4.0.2
+  location: ^5.0.0
 
 
 
@@ -44,4 +49,5 @@ flutter:
 
   assets:
      - assets/peepoGamer.png
+     - assets/geodata.json
 
