@@ -641,6 +641,7 @@
     double _heading = 0.0; // Current device orientation in degrees
 
     @override
+    //hey this a comment for pushing lul
     void initState() {
       super.initState();
       _initLocationService();
@@ -696,7 +697,7 @@
         return;
       }
 
-      final locationSettings = LocationSettings(
+      const locationSettings = LocationSettings(
         accuracy:LocationAccuracy.high,
         distanceFilter: 10,
       );
