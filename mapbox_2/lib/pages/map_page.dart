@@ -894,12 +894,13 @@
     @override
     void initState() {
       super.initState();
-      _getCurrentLocation();
+      _getCurrentLocation(); // Fetch current location when the app starts
       _initLocationService();
-      _loadTrailData();
       _startCompassListener();
       WidgetsBinding.instance.addObserver(this);
+      _loadTrailData();
     }
+
 
     @override
     void dispose() {
@@ -912,17 +913,25 @@
     @override
     void didChangeAppLifecycleState(AppLifecycleState state) {
       if (state == AppLifecycleState.resumed) {
-        _getCurrentLocation();
+        _getCurrentLocation(); // Fetch current location when the app is resumed
       }
     }
 
+
     Future<void> _getCurrentLocation() async {
-      Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _currentLocation = LatLng(position.latitude, position.longitude);
-        _updateMarker(position); // Update the marker
-      });
+      try {
+        Position position = await Geolocator.getCurrentPosition();
+        print('Current Location: ${position.latitude}, ${position.longitude}');
+        setState(() {
+          _currentLocation = LatLng(position.latitude, position.longitude);
+          _updateMarker(position); // Update the marker
+        });
+        _moveCameraToCurrentLocation(); // Move camera to current location
+      } catch (e) {
+        print('Error fetching current location: $e');
+      }
     }
+
 
     Future<void> _initLocationService() async {
       try {
@@ -939,28 +948,31 @@
           }
         }
 
-        _positionStreamSubscription = Geolocator.getPositionStream().listen((Position position) {
-          setState(() {
-            _currentSpeed = position.speed * 3.6; // Convert m/s to km/h
-            _currentLocation = LatLng(position.latitude, position.longitude);
-            if (_trackingStarted) {
-              _updateMarker(position);
-              _updateMapPosition(position.latitude, position.longitude);
-              if (_lastTrackedLocation != null) {
-                _distanceTraveled += Geolocator.distanceBetween(
-                  _lastTrackedLocation!.latitude,
-                  _lastTrackedLocation!.longitude,
-                  position.latitude,
-                  position.longitude,
-                );
+        _positionStreamSubscription =
+            Geolocator.getPositionStream().listen((Position position) {
+              setState(() {
+                _currentSpeed = position.speed * 3.6; // Convert m/s to km/h
+                _currentLocation =
+                    LatLng(position.latitude, position.longitude);
+                if (_trackingStarted) {
+                  _updateMarker(position);
+                  _updateMapPosition(position.latitude, position.longitude);
+                  if (_lastTrackedLocation != null) {
+                    _distanceTraveled += Geolocator.distanceBetween(
+                      _lastTrackedLocation!.latitude,
+                      _lastTrackedLocation!.longitude,
+                      position.latitude,
+                      position.longitude,
+                    );
+                  }
+                  _lastTrackedLocation =
+                      LatLng(position.latitude, position.longitude);
+                }
+              });
+              if (!_controller.isCompleted) {
+                _moveCameraToCurrentLocation();
               }
-              _lastTrackedLocation = LatLng(position.latitude, position.longitude);
-            }
-          });
-          if (!_controller.isCompleted) {
-            _moveCameraToCurrentLocation();
-          }
-        });
+            });
       } catch (e) {
         print('Error initializing location service: $e');
       }
@@ -975,25 +987,63 @@
 
     Future<void> _loadTrailData() async {
       try {
-        final String geoJsonString = await rootBundle.loadString('assets/geodata.json');
+        final String geoJsonString = await rootBundle.loadString(
+            'assets/geodata.json');
         final data = json.decode(geoJsonString);
-        final List<dynamic> coordinates = data['features'][0]['geometry']['coordinates'];
-        List<LatLng> trailPoints = coordinates.map<LatLng>((coord) => LatLng(coord[1], coord[0])).toList();
+        final List<
+            dynamic> coordinates = data['features'][0]['geometry']['coordinates'];
+        List<LatLng> trailPoints = coordinates.map<LatLng>((coord) =>
+            LatLng(coord[1], coord[0])).toList();
+
+        // Add trail polyline
+        _polylines.add(Polyline(
+          polylineId: const PolylineId("trail"),
+          points: trailPoints,
+          color: Colors.blue,
+          width: 3,
+        ));
+
+        // Define water station waypoints
+        List<Map<String, dynamic>> waterStations = [
+          {'name': 'Barrington Ave', 'lat': 42.101700, 'lng': -88.275384},
+          {
+            'name': 'Spring and N Water Street',
+            'lat': 41.994857,
+            'lng': -88.294895
+          },
+          {'name': 'State Street Bridge', 'lat': 41.994189, 'lng': -88.293600},
+          {
+            'name': 'Water and Plum Street',
+            'lat': 41.993449,
+            'lng': -88.295136
+          },
+          {'name': 'Batava River Walk', 'lat': 41.85134, 'lng': -88.30813},
+          {'name': 'Island Park', 'lat': 41.88419, 'lng': -88.30224},
+          {'name': 'Illinois Ave', 'lat': 41.770920, 'lng': -88.310769},
+          {'name': 'Hudson Crossing Park', 'lat': 41.685517, 'lng': -88.354657},
+        ];
+
+        // Add water station markers
+        for (var station in waterStations) {
+          _markers.add(Marker(
+            markerId: MarkerId(station['name']),
+            position: LatLng(station['lat'], station['lng']),
+            icon: await _createMarkerImageFromAsset(
+                'assets/watersippin.png'),
+          ));
+        }
 
         setState(() {
-          _polylines.add(Polyline(
-            polylineId: const PolylineId("trail"),
-            points: trailPoints,
-            color: Colors.blue,
-            width: 3,
-          ));
+          // Update state with polylines and markers
         });
       } catch (e) {
         print('Failed to load GeoJSON data: $e');
       }
     }
 
-    Future<BitmapDescriptor> _createMarkerImageFromAsset(String assetName) async {
+
+    Future<BitmapDescriptor> _createMarkerImageFromAsset(
+        String assetName) async {
       final ImageConfiguration imageConfiguration = ImageConfiguration();
       BitmapDescriptor bitmapDescriptor = await BitmapDescriptor.fromAssetImage(
         imageConfiguration,
@@ -1007,22 +1057,24 @@
       _markers.add(Marker(
         markerId: const MarkerId("currentLocation"),
         position: LatLng(position.latitude, position.longitude),
-        icon: await _createMarkerImageFromAsset('assets/navicon.png'), // Change 'your_image.png' to your asset image path
+        icon: await _createMarkerImageFromAsset(
+            'assets/navicon.png'), // Change 'your_image.png' to your asset image path
       ));
     }
 
     void _startCompassListener() {
-      _compassSubscription = FlutterCompass.events!.listen((CompassEvent event) {
-        final double? direction = event.heading;
-        if (direction != null) {
-          setState(() {
-            _lastBearing = direction;
+      _compassSubscription =
+          FlutterCompass.events!.listen((CompassEvent event) {
+            final double? direction = event.heading;
+            if (direction != null) {
+              setState(() {
+                _lastBearing = direction;
+              });
+              if (_trackingStarted) {
+                _updateMapBearing();
+              }
+            }
           });
-          if (_trackingStarted) {
-            _updateMapBearing();
-          }
-        }
-      });
     }
 
     void _updateMapBearing() async {
@@ -1051,6 +1103,13 @@
       });
     }
 
+    void _recenterMap() async {
+      final GoogleMapController controller = await _controller.future;
+      if (_currentLocation != null) {
+        controller.animateCamera(CameraUpdate.newLatLng(_currentLocation!));
+      }
+    }
+
     @override
     Widget build(BuildContext context) {
       return Scaffold(
@@ -1066,10 +1125,12 @@
               markers: _markers,
               onMapCreated: (GoogleMapController controller) async {
                 _controller.complete(controller);
-                String mapStyle = await rootBundle.loadString('assets/map_style.json');
+                String mapStyle = await rootBundle.loadString(
+                    'assets/map_style.json');
                 controller.setMapStyle(mapStyle);
                 if (_currentLocation != null) {
-                  controller.moveCamera(CameraUpdate.newLatLng(_currentLocation!));
+                  controller.moveCamera(
+                      CameraUpdate.newLatLng(_currentLocation!));
                 }
               },
             ),
@@ -1083,20 +1144,34 @@
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text('Speed: ${(_currentSpeed * 2.23694).toStringAsFixed(2)} mph\nDistance: ${(_distanceTraveled / 1609.34).toStringAsFixed(2)} mi'),
+                  child: Text(
+                      'Speed: ${(_currentSpeed * 2.23694).toStringAsFixed(
+                          2)} mph\nDistance: ${(_distanceTraveled / 1609.34)
+                          .toStringAsFixed(2)} mi'),
                 ),
               ),
-
+            if (!_trackingStarted)
+              Positioned(
+                top: 20,
+                right: 20,
+                child: FloatingActionButton(
+                  onPressed: _recenterMap,
+                  backgroundColor: Colors.blue,
+                  child: Icon(Icons.gps_fixed),
+                ),
+              ),
             Positioned(
               bottom: 20, // Adjust bottom position as needed
-              right: MediaQuery.of(context).size.width / 2 - 28, // Center the button horizontally
+              right: MediaQuery
+                  .of(context)
+                  .size
+                  .width / 2 - 28, // Center the tracking button horizontally
               child: FloatingActionButton(
                 onPressed: _toggleTracking,
                 backgroundColor: _trackingStarted ? Colors.red : Colors.green,
                 child: Icon(_trackingStarted ? Icons.stop : Icons.play_arrow),
               ),
             ),
-
           ],
         ),
       );
