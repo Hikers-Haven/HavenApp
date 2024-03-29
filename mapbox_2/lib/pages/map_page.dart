@@ -610,255 +610,495 @@
   // }
   //=====================================================================================================
 
+//   import 'dart:async';
+//   import 'dart:convert';
+//   import 'dart:math';
+//   import 'package:flutter/cupertino.dart';
+//   import 'package:flutter/material.dart';
+//   import 'package:flutter_map/flutter_map.dart';
+//   import 'package:latlong2/latlong.dart' as LatLng;
+//   import 'package:geolocator/geolocator.dart' show Geolocator, LocationAccuracy, LocationSettings, Position;
+//   import 'package:flutter/services.dart' show DeviceOrientation, rootBundle;
+//   import 'package:syncfusion_flutter_gauges/gauges.dart';
+//   import 'package:sensors_plus/sensors_plus.dart';
+//   import 'package:location/location.dart' as loc;
+//
+//   class MapPage extends StatefulWidget {
+//     @override
+//     _MapPageState createState() => _MapPageState();
+//   }
+//
+//   class _MapPageState extends State<MapPage> {
+//     LatLng.LatLng? _currentLocation;
+//     MapController mapController = MapController();
+//     List<LatLng.LatLng> trailPoints = [];
+//     StreamSubscription<Position>? _positionStreamSubscription;
+//     StreamSubscription<GyroscopeEvent>? _orientationSubscription;
+//
+//     double _currentSpeed = 0.0; // Current speed of the user in km/h
+//     bool _isTrackingStarted =
+//     false; // State variable to control speedometer visibility
+//     double _heading = 0.0; // Current device orientation in degrees
+//
+//     @override
+//     //hey this a comment for pushing lul
+//     void initState() {
+//       super.initState();
+//       _initLocationService();
+//       _loadTrailData();
+//       _startOrientationListener();
+//     }
+//
+//     void _initLocationService() async {
+//       loc.Location location = loc.Location();
+//
+//       bool serviceEnabled;
+//       loc.PermissionStatus permission;
+//
+//       // Check if location services are enabled
+//       serviceEnabled = await location.serviceEnabled();
+//       if (!serviceEnabled) {
+//         serviceEnabled = await location.requestService();
+//         if (!serviceEnabled) {
+//           // Location services are still not enabled, handle accordingly
+//           return;
+//         }
+//       }
+//
+//       // Check location permissions
+//       permission = await location.hasPermission();
+//       if (permission == loc.PermissionStatus.denied) {
+//         permission = await location.requestPermission();
+//         if (permission != loc.PermissionStatus.granted) {
+//           // Location permissions are not granted, handle accordingly
+//           return;
+//         }
+//       }
+//
+//       // Start listening to location changes and update camera position
+//       location.onLocationChanged.listen((loc.LocationData currentLocation) {
+//         setState(() {
+//           _currentLocation = LatLng.LatLng(currentLocation.latitude!, currentLocation.longitude!);
+//           mapController.move(_currentLocation!, 14.0);
+//         });
+//       });
+//
+//       // Get the initial location and center the camera
+//       loc.LocationData initialLocation = await location.getLocation();
+//       setState(() {
+//         _currentLocation = LatLng.LatLng(initialLocation.latitude!, initialLocation.longitude!);
+//         mapController.move(_currentLocation!, 14.0);
+//       });
+//     }
+//
+//     void startTracking() {
+//       if (_positionStreamSubscription != null) {
+//         // Prevent multiple subscriptions
+//         return;
+//       }
+//
+//       const locationSettings = LocationSettings(
+//         accuracy:LocationAccuracy.high,
+//         distanceFilter: 10,
+//       );
+//       _positionStreamSubscription =
+//           Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+//                 (Position? position) {
+//               if (position != null) {
+//                 setState(() {
+//                   _currentLocation =
+//                       LatLng.LatLng(position.latitude, position.longitude);
+//                   _currentSpeed = position.speed * 3.6; // Convert m/s to km/h
+//                   mapController.move(_currentLocation!, 14.0);
+//                 });
+//               }
+//             },
+//           );
+//       setState(() {
+//         _isTrackingStarted = true;
+//       });
+//     }
+//
+//     void stopTracking() {
+//       _positionStreamSubscription?.cancel();
+//       _positionStreamSubscription = null; // Reset the subscription
+//       setState(() {
+//         _isTrackingStarted = false;
+//       });
+//     }
+//
+//     void _startOrientationListener() {
+//       if (_orientationSubscription != null) {
+//         // If the subscription exists, don't create a new one.
+//         return;
+//       }
+//
+//       _orientationSubscription =
+//           gyroscopeEventStream().listen((GyroscopeEvent event) {
+//             // Logic remains the same.
+//             final double x = event.x;
+//             final double y = event.y;
+//             final double radians = atan2(y, x);
+//             final double degrees = radians * (180 / pi);
+//             setState(() {
+//               _heading = degrees;
+//             });
+//           });
+//     }
+//
+//     @override
+//     void dispose() {
+//       _positionStreamSubscription?.cancel();
+//       _orientationSubscription?.cancel();
+//       super.dispose();
+//     }
+//
+//     Future<void> _loadTrailData() async {
+//       try {
+//         final String geoJsonString =
+//         await rootBundle.loadString('assets/geodata.json');
+//         final data = json.decode(geoJsonString);
+//         final List<dynamic> coordinates =
+//         data['features'][0]['geometry']['coordinates'];
+//         setState(() {
+//           trailPoints = coordinates
+//               .map<LatLng.LatLng>((coord) => LatLng.LatLng(coord[1], coord[0]))
+//               .toList();
+//         });
+//       } catch (e) {
+//         print('Failed to load GeoJSON data: $e');
+//       }
+//     }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     LatLng.LatLng initialLocation = _currentLocation ??
+//         LatLng.LatLng(
+//             34.6275, -84.1935); // default location if current location is null
+//
+//     return Scaffold(
+//       body: Stack(
+//         children: [
+//           Transform.rotate(
+//             angle: _heading * (pi / 180), // Convert degrees to radians
+//             child: FlutterMap(
+//               mapController: mapController,
+//               options: MapOptions(
+//                 center: initialLocation,
+//                 zoom: 40.0,
+//               ),
+//               children: [
+//                 TileLayer(
+//                   urlTemplate:
+//                       'https://api.mapbox.com/styles/v1/coliphant01/clu2sqhr900fv01pcgdgh7ucu/tiles/256/{z}/{x}/{y}?access_token={accessToken}',
+//                   additionalOptions: const {
+//                     'accessToken':
+//                         'sk.eyJ1IjoiY29saXBoYW50MDEiLCJhIjoiY2x0eXhmajEyMGp4eDJycGo5MncybXhvdCJ9.nLKWbR2KqwBtf2v-nopBQg',
+//                   },
+//                 ),
+//                 PolylineLayer(
+//                   polylines: [
+//                     Polyline(
+//                       points: trailPoints,
+//                       strokeWidth: 4.0,
+//                       color: Colors.blue,
+//                     )
+//                   ],
+//                 ),
+//                 MarkerLayer(
+//                   markers: _currentLocation != null
+//                       ? [
+//                           Marker(
+//                             point: _currentLocation!,
+//                             // Ensure _currentLocation is of type LatLng
+//                             child: Icon(
+//                               CupertinoIcons.location_north_fill,
+//                               size: 30,
+//                               color: Colors.red,
+//                             ),
+//                             width: 80,
+//                             height: 80,
+//                             alignment: Alignment.center,
+//                             rotate: true, // Rotate the marker icon
+//                           ),
+//                         ]
+//                       : [],
+//                 ),
+//               ],
+//             ),
+//           ),
+//           if (_isTrackingStarted)
+//             // Conditional rendering based on _isTrackingStarted
+//             Positioned(
+//               bottom: 80,
+//               left: 20,
+//               child: Container(
+//                 width: 180,
+//                 height: 180,
+//                 child: SfRadialGauge(
+//                     // Your existing speedometer setup
+//                     ),
+//               ),
+//             ),
+//           Positioned(
+//             bottom: 20,
+//             right: 20,
+//             child: FloatingActionButton(
+//               onPressed: () {
+//                 if (_isTrackingStarted) {
+//                   stopTracking(); // Stop tracking when button is pressed again
+//                 } else {
+//                   startTracking(); // Start tracking when button is pressed
+//                 }
+//               },
+//               child: _isTrackingStarted
+//                   ? Icon(Icons.stop)
+//                   : Icon(Icons.play_arrow),
+//               backgroundColor: _isTrackingStarted ? Colors.red : Colors.green,
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
+
+  //-------------------------------------------------------------------------------------------
+  import 'package:flutter/material.dart';
+  import 'package:google_maps_flutter/google_maps_flutter.dart';
+  import 'package:geolocator/geolocator.dart';
+  import 'package:flutter/services.dart' show rootBundle;
   import 'dart:async';
   import 'dart:convert';
-  import 'dart:math';
-  import 'package:flutter/cupertino.dart';
-  import 'package:flutter/material.dart';
-  import 'package:flutter_map/flutter_map.dart';
-  import 'package:latlong2/latlong.dart' as LatLng;
-  import 'package:geolocator/geolocator.dart' show Geolocator, LocationAccuracy, LocationSettings, Position;
-  import 'package:flutter/services.dart' show DeviceOrientation, rootBundle;
-  import 'package:syncfusion_flutter_gauges/gauges.dart';
-  import 'package:sensors_plus/sensors_plus.dart';
-  import 'package:location/location.dart' as loc;
+  import 'package:flutter_compass/flutter_compass.dart';
 
   class MapPage extends StatefulWidget {
     @override
     _MapPageState createState() => _MapPageState();
   }
 
-  class _MapPageState extends State<MapPage> {
-    LatLng.LatLng? _currentLocation;
-    MapController mapController = MapController();
-    List<LatLng.LatLng> trailPoints = [];
+  class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
+    final Completer<GoogleMapController> _controller = Completer();
+    final Set<Polyline> _polylines = {};
+    final Set<Marker> _markers = {};
+    LatLng? _currentLocation;
     StreamSubscription<Position>? _positionStreamSubscription;
-    StreamSubscription<GyroscopeEvent>? _orientationSubscription;
-
-    double _currentSpeed = 0.0; // Current speed of the user in km/h
-    bool _isTrackingStarted =
-    false; // State variable to control speedometer visibility
-    double _heading = 0.0; // Current device orientation in degrees
+    StreamSubscription<CompassEvent>? _compassSubscription;
+    double _lastBearing = 0.0;
+    double _currentSpeed = 0.0; // To track current speed
+    bool _trackingStarted = false;
+    double _distanceTraveled = 0.0;
+    LatLng? _lastTrackedLocation;
 
     @override
-    //hey this a comment for pushing lul
     void initState() {
       super.initState();
+      _getCurrentLocation();
       _initLocationService();
       _loadTrailData();
-      _startOrientationListener();
-    }
-
-    void _initLocationService() async {
-      loc.Location location = loc.Location();
-
-      bool serviceEnabled;
-      loc.PermissionStatus permission;
-
-      // Check if location services are enabled
-      serviceEnabled = await location.serviceEnabled();
-      if (!serviceEnabled) {
-        serviceEnabled = await location.requestService();
-        if (!serviceEnabled) {
-          // Location services are still not enabled, handle accordingly
-          return;
-        }
-      }
-
-      // Check location permissions
-      permission = await location.hasPermission();
-      if (permission == loc.PermissionStatus.denied) {
-        permission = await location.requestPermission();
-        if (permission != loc.PermissionStatus.granted) {
-          // Location permissions are not granted, handle accordingly
-          return;
-        }
-      }
-
-      // Start listening to location changes and update camera position
-      location.onLocationChanged.listen((loc.LocationData currentLocation) {
-        setState(() {
-          _currentLocation = LatLng.LatLng(currentLocation.latitude!, currentLocation.longitude!);
-          mapController.move(_currentLocation!, 14.0);
-        });
-      });
-
-      // Get the initial location and center the camera
-      loc.LocationData initialLocation = await location.getLocation();
-      setState(() {
-        _currentLocation = LatLng.LatLng(initialLocation.latitude!, initialLocation.longitude!);
-        mapController.move(_currentLocation!, 14.0);
-      });
-    }
-
-    void startTracking() {
-      if (_positionStreamSubscription != null) {
-        // Prevent multiple subscriptions
-        return;
-      }
-
-      const locationSettings = LocationSettings(
-        accuracy:LocationAccuracy.high,
-        distanceFilter: 10,
-      );
-      _positionStreamSubscription =
-          Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-                (Position? position) {
-              if (position != null) {
-                setState(() {
-                  _currentLocation =
-                      LatLng.LatLng(position.latitude, position.longitude);
-                  _currentSpeed = position.speed * 3.6; // Convert m/s to km/h
-                  mapController.move(_currentLocation!, 14.0);
-                });
-              }
-            },
-          );
-      setState(() {
-        _isTrackingStarted = true;
-      });
-    }
-
-    void stopTracking() {
-      _positionStreamSubscription?.cancel();
-      _positionStreamSubscription = null; // Reset the subscription
-      setState(() {
-        _isTrackingStarted = false;
-      });
-    }
-
-    void _startOrientationListener() {
-      if (_orientationSubscription != null) {
-        // If the subscription exists, don't create a new one.
-        return;
-      }
-
-      _orientationSubscription =
-          gyroscopeEventStream().listen((GyroscopeEvent event) {
-            // Logic remains the same.
-            final double x = event.x;
-            final double y = event.y;
-            final double radians = atan2(y, x);
-            final double degrees = radians * (180 / pi);
-            setState(() {
-              _heading = degrees;
-            });
-          });
+      _startCompassListener();
+      WidgetsBinding.instance.addObserver(this);
     }
 
     @override
     void dispose() {
+      WidgetsBinding.instance.removeObserver(this);
       _positionStreamSubscription?.cancel();
-      _orientationSubscription?.cancel();
+      _compassSubscription?.cancel();
       super.dispose();
+    }
+
+    @override
+    void didChangeAppLifecycleState(AppLifecycleState state) {
+      if (state == AppLifecycleState.resumed) {
+        _getCurrentLocation();
+      }
+    }
+
+    Future<void> _getCurrentLocation() async {
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _currentLocation = LatLng(position.latitude, position.longitude);
+        _updateMarker(position); // Update the marker
+      });
+    }
+
+    Future<void> _initLocationService() async {
+      try {
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          throw 'Location services are disabled.';
+        }
+
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+          if (permission != LocationPermission.whileInUse) {
+            throw 'Location permissions are denied.';
+          }
+        }
+
+        _positionStreamSubscription = Geolocator.getPositionStream().listen((Position position) {
+          setState(() {
+            _currentSpeed = position.speed * 3.6; // Convert m/s to km/h
+            _currentLocation = LatLng(position.latitude, position.longitude);
+            if (_trackingStarted) {
+              _updateMarker(position);
+              _updateMapPosition(position.latitude, position.longitude);
+              if (_lastTrackedLocation != null) {
+                _distanceTraveled += Geolocator.distanceBetween(
+                  _lastTrackedLocation!.latitude,
+                  _lastTrackedLocation!.longitude,
+                  position.latitude,
+                  position.longitude,
+                );
+              }
+              _lastTrackedLocation = LatLng(position.latitude, position.longitude);
+            }
+          });
+          if (!_controller.isCompleted) {
+            _moveCameraToCurrentLocation();
+          }
+        });
+      } catch (e) {
+        print('Error initializing location service: $e');
+      }
+    }
+
+    Future<void> _moveCameraToCurrentLocation() async {
+      final GoogleMapController controller = await _controller.future;
+      if (_currentLocation != null) {
+        controller.moveCamera(CameraUpdate.newLatLng(_currentLocation!));
+      }
     }
 
     Future<void> _loadTrailData() async {
       try {
-        final String geoJsonString =
-        await rootBundle.loadString('assets/geodata.json');
+        final String geoJsonString = await rootBundle.loadString('assets/geodata.json');
         final data = json.decode(geoJsonString);
-        final List<dynamic> coordinates =
-        data['features'][0]['geometry']['coordinates'];
+        final List<dynamic> coordinates = data['features'][0]['geometry']['coordinates'];
+        List<LatLng> trailPoints = coordinates.map<LatLng>((coord) => LatLng(coord[1], coord[0])).toList();
+
         setState(() {
-          trailPoints = coordinates
-              .map<LatLng.LatLng>((coord) => LatLng.LatLng(coord[1], coord[0]))
-              .toList();
+          _polylines.add(Polyline(
+            polylineId: const PolylineId("trail"),
+            points: trailPoints,
+            color: Colors.blue,
+            width: 3,
+          ));
         });
       } catch (e) {
         print('Failed to load GeoJSON data: $e');
       }
     }
 
-  @override
-  Widget build(BuildContext context) {
-    LatLng.LatLng initialLocation = _currentLocation ??
-        LatLng.LatLng(
-            34.6275, -84.1935); // default location if current location is null
+    Future<BitmapDescriptor> _createMarkerImageFromAsset(String assetName) async {
+      final ImageConfiguration imageConfiguration = ImageConfiguration();
+      BitmapDescriptor bitmapDescriptor = await BitmapDescriptor.fromAssetImage(
+        imageConfiguration,
+        assetName,
+      );
+      return bitmapDescriptor;
+    }
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Transform.rotate(
-            angle: _heading * (pi / 180), // Convert degrees to radians
-            child: FlutterMap(
-              mapController: mapController,
-              options: MapOptions(
-                center: initialLocation,
-                zoom: 40.0,
+    void _updateMarker(Position position) async {
+      _markers.clear();
+      _markers.add(Marker(
+        markerId: const MarkerId("currentLocation"),
+        position: LatLng(position.latitude, position.longitude),
+        icon: await _createMarkerImageFromAsset('assets/navicon.png'), // Change 'your_image.png' to your asset image path
+      ));
+    }
+
+    void _startCompassListener() {
+      _compassSubscription = FlutterCompass.events!.listen((CompassEvent event) {
+        final double? direction = event.heading;
+        if (direction != null) {
+          setState(() {
+            _lastBearing = direction;
+          });
+          if (_trackingStarted) {
+            _updateMapBearing();
+          }
+        }
+      });
+    }
+
+    void _updateMapBearing() async {
+      final GoogleMapController controller = await _controller.future;
+      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+        target: _currentLocation!,
+        bearing: _lastBearing,
+        zoom: 14.0,
+      )));
+    }
+
+    void _updateMapPosition(double lat, double lng) async {
+      final GoogleMapController controller = await _controller.future;
+      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+        target: LatLng(lat, lng),
+        zoom: 14.0,
+      )));
+    }
+
+    void _toggleTracking() {
+      setState(() {
+        _trackingStarted = !_trackingStarted;
+        if (_trackingStarted) {
+          _distanceTraveled = 0.0; // Reset distance when tracking starts
+        }
+      });
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      return Scaffold(
+        body: Stack(
+          children: [
+            GoogleMap(
+              mapType: MapType.normal,
+              initialCameraPosition: CameraPosition(
+                target: _currentLocation ?? LatLng(0, 0),
+                zoom: 14.0,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate:
-                      'https://api.mapbox.com/styles/v1/coliphant01/clu2sqhr900fv01pcgdgh7ucu/tiles/256/{z}/{x}/{y}?access_token={accessToken}',
-                  additionalOptions: const {
-                    'accessToken':
-                        'sk.eyJ1IjoiY29saXBoYW50MDEiLCJhIjoiY2x0eXhmajEyMGp4eDJycGo5MncybXhvdCJ9.nLKWbR2KqwBtf2v-nopBQg',
-                  },
-                ),
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: trailPoints,
-                      strokeWidth: 4.0,
-                      color: Colors.blue,
-                    )
-                  ],
-                ),
-                MarkerLayer(
-                  markers: _currentLocation != null
-                      ? [
-                          Marker(
-                            point: _currentLocation!,
-                            // Ensure _currentLocation is of type LatLng
-                            child: Icon(
-                              CupertinoIcons.location_north_fill,
-                              size: 30,
-                              color: Colors.red,
-                            ),
-                            width: 80,
-                            height: 80,
-                            alignment: Alignment.center,
-                            rotate: true, // Rotate the marker icon
-                          ),
-                        ]
-                      : [],
-                ),
-              ],
-            ),
-          ),
-          if (_isTrackingStarted)
-            // Conditional rendering based on _isTrackingStarted
-            Positioned(
-              bottom: 80,
-              left: 20,
-              child: Container(
-                width: 180,
-                height: 180,
-                child: SfRadialGauge(
-                    // Your existing speedometer setup
-                    ),
-              ),
-            ),
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: FloatingActionButton(
-              onPressed: () {
-                if (_isTrackingStarted) {
-                  stopTracking(); // Stop tracking when button is pressed again
-                } else {
-                  startTracking(); // Start tracking when button is pressed
+              polylines: _polylines,
+              markers: _markers,
+              onMapCreated: (GoogleMapController controller) async {
+                _controller.complete(controller);
+                String mapStyle = await rootBundle.loadString('assets/map_style.json');
+                controller.setMapStyle(mapStyle);
+                if (_currentLocation != null) {
+                  controller.moveCamera(CameraUpdate.newLatLng(_currentLocation!));
                 }
               },
-              child: _isTrackingStarted
-                  ? Icon(Icons.stop)
-                  : Icon(Icons.play_arrow),
-              backgroundColor: _isTrackingStarted ? Colors.red : Colors.green,
             ),
-          ),
-        ],
-      ),
-    );
+            if (_trackingStarted)
+              Positioned(
+                top: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('Speed: ${(_currentSpeed * 2.23694).toStringAsFixed(2)} mph\nDistance: ${(_distanceTraveled / 1609.34).toStringAsFixed(2)} mi'),
+                ),
+              ),
+
+            Positioned(
+              bottom: 20, // Adjust bottom position as needed
+              right: MediaQuery.of(context).size.width / 2 - 28, // Center the button horizontally
+              child: FloatingActionButton(
+                onPressed: _toggleTracking,
+                backgroundColor: _trackingStarted ? Colors.red : Colors.green,
+                child: Icon(_trackingStarted ? Icons.stop : Icons.play_arrow),
+              ),
+            ),
+
+          ],
+        ),
+      );
+    }
   }
-}

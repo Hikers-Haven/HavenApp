@@ -7,7 +7,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.4 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 
 dependencies:
@@ -30,6 +30,8 @@ dependencies:
   syncfusion_flutter_gauges: ^24.2.5
   sensors_plus: ^4.0.2
   location: ^5.0.0
+  google_maps_flutter: ^2.6.0
+  flutter_compass: ^0.8.0
 
 
 
@@ -50,4 +52,8 @@ flutter:
   assets:
      - assets/peepoGamer.png
      - assets/geodata.json
+     - assets/map_style.json
+     - assets/gps-navigation.png
+     - assets/navigationicon.png
+     - assets/navicon.png
 
