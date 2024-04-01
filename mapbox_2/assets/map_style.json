@@ -12,5 +12,12 @@
     "stylers": [
       { "color": "#blue" }
     ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#FFFFFF" }
+    ]
   }
 ]

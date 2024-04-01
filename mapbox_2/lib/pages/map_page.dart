@@ -888,6 +888,8 @@
     double _lastBearing = 0.0;
     double _currentSpeed = 0.0; // To track current speed
     bool _trackingStarted = false;
+    bool _paused = false;
+
     double _distanceTraveled = 0.0;
     LatLng? _lastTrackedLocation;
 
@@ -1109,6 +1111,30 @@
         controller.animateCamera(CameraUpdate.newLatLng(_currentLocation!));
       }
     }
+    void _pauseTracking() {
+      // Perform actions to pause tracking
+      setState(() {
+        _paused = true; // Update paused state
+      });
+    }
+
+    void _resumeTracking() {
+      // Perform actions to resume tracking
+      setState(() {
+        _paused = false; // Update tracking state
+      });
+    }
+    void _togglePause() {
+      setState(() {
+        _paused = !_paused; // Toggle the paused state
+
+        if (_paused) {
+          _pauseTracking();
+        } else {
+          _resumeTracking();
+        }
+      });
+    }
 
     @override
     Widget build(BuildContext context) {
@@ -1145,7 +1171,7 @@
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                      'Speed: ${(_currentSpeed * 2.23694).toStringAsFixed(
+                      'Speed: ${(_currentSpeed).toStringAsFixed(
                           2)} mph\nDistance: ${(_distanceTraveled / 1609.34)
                           .toStringAsFixed(2)} mi'),
                 ),
@@ -1162,14 +1188,29 @@
               ),
             Positioned(
               bottom: 20, // Adjust bottom position as needed
-              right: MediaQuery
-                  .of(context)
-                  .size
-                  .width / 2 - 28, // Center the tracking button horizontally
-              child: FloatingActionButton(
-                onPressed: _toggleTracking,
-                backgroundColor: _trackingStarted ? Colors.red : Colors.green,
-                child: Icon(_trackingStarted ? Icons.stop : Icons.play_arrow),
+              right: 0, // Align the buttons to the right
+              left: 0, // Align the buttons to the left
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FloatingActionButton(
+                      onPressed: _toggleTracking,
+                      backgroundColor: _trackingStarted ? Colors.red : Colors.green,
+                      child: Icon(
+                        _trackingStarted ? Icons.stop : Icons.play_arrow,
+                      ),
+                    ),
+                    SizedBox(width: 16), // Add spacing between buttons if needed
+                    FloatingActionButton(
+                      onPressed: _togglePause,
+                      backgroundColor: Colors.orange, // Set the background color to orange
+                      child: Icon(
+                        _paused ? Icons.pause : Icons.restart_alt,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
