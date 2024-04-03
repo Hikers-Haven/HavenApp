@@ -7,11 +7,12 @@ buildscript {
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "com.android.tools.build:gradle:4.1.0"
+//        classpath "com.android.tools.build:gradle:4.1.0"
+        classpath 'com.android.tools.build:gradle:7.2.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // START: FlutterFire Configuration
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'com.google.gms:google-services:4.3.10'
+        classpath 'com.google.gms:google-services:4.3.14'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // END: FlutterFire Configuration
 
@@ -22,8 +23,20 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url 'https://api.mapbox.com/downloads/v2/releases/maven'
+            authentication {
+                basic(BasicAuthentication)
+            }
+            credentials {
+                username = 'mapbox'
+                password = project.properties['MAPBOX_DOWNLOADS_TOKEN'] ?: ""
+            }
+        }
+        // Other repositories
     }
 }
+
 
 rootProject.buildDir = '../build'
 subprojects {
