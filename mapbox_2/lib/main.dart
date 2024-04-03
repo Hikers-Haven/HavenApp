@@ -150,7 +150,7 @@ class _AuthScreenState extends State<AuthScreen>{
         // Add user to tables
         User? user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          await FirebaseFirestore.instance.collection('users')
+          await FirebaseFirestore.instance.collection('Users')
               .doc(user.uid)
               .set({
             'email': email,
