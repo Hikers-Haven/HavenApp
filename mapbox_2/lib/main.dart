@@ -3,8 +3,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:mapbox_2/login.dart';
 // Import pages for navigation
 import 'package:mapbox_2/pages/first_page.dart';
 import 'package:mapbox_2/pages/second_page.dart';
@@ -19,6 +17,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -38,7 +37,7 @@ class MyApp extends StatelessWidget {
           if (snapshot.hasData) {
             return MyHomePage();
           } else {
-            return const Auth();
+            return const AuthScreen();
           }
         },
       ),
@@ -52,8 +51,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final user = FirebaseAuth.instance.currentUser!;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,7 +65,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundImage: AssetImage('assets/peepoGamer.png'),
-                      child: Text('Signed in as:' + user.email!),
                     ),
                   ),
                 ),
@@ -120,13 +116,163 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+class AuthScreen extends StatefulWidget{
+  const AuthScreen({super.key});
+
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen>{
+  bool _isLogin = true; // Changed to true for default login screen
+  bool _loading = false;
+  String _errorMessage = ''; // Track error message
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  Future<void> handleSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    setState(() {
+      _loading = true;
+      _errorMessage = ''; // Reset error message
+    });
+
+    try {
+      if (_isLogin) {
+        await Auth().signInWithEmailandPassword(email, password);
+      } else {
+        await Auth().registerWithEmailandPassword(email, password);
+
+        // Add user to tables
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance.collection('users')
+              .doc(user.uid)
+              .set({
+            'email': email,
+            // Add any other user data
+         });
+        }
+      }
+    } catch (error) {
+
+      String formatErrorMessage(dynamic error) {
+        String errorMessage = error.toString();
+        // Check if the error message contains '[firebase_auth/'
+        if (errorMessage.contains('[firebase_auth/')) {
+          // Remove the error code enclosed in square brackets
+          errorMessage = errorMessage.replaceAll(RegExp(r'\[.*?\]'), '');
+        }
+        return errorMessage.trim(); // Trim any leading or trailing spaces
+      }
+      // Handle authentication errors here
+      String errorMessage = formatErrorMessage(error);
+      setState(() {
+        _errorMessage = errorMessage;
+      });
+      print('Authentication Error: $errorMessage');
+    }
 
 
-//   Future addUser(String email, String firstName) async {
-//     await FirebaseFirestore.instance.collection('users').add({
-//       'Email': email,
-//       'Name': firstName,
-//
-//     });
-//   }
 
+    setState(() => _loading = false);
+  }
+
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                    "Log in / Register",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _emailController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty){
+                      return 'Please enter your email';
+                    }
+                    return null;
+                  },
+                  decoration: const InputDecoration(
+                      hintText: 'Email',
+                      focusColor: Colors.black,
+                      focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                            width: 2,
+                          )
+                      )
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty){
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                  decoration: const InputDecoration(
+                      hintText: 'Password',
+                      focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: Colors.black,
+                              width: 2
+                          )
+                      )
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                    ),
+                    onPressed: () => handleSubmit(),
+                    child: _loading
+                        ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                        : Text(_isLogin ? 'Login' : 'Register')
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isLogin = !_isLogin; // Toggle between login and register
+                    });
+                  },
+                  child: Text(_isLogin ? 'Create an account' : 'Already have an account?'),
+                ),
+                if (_errorMessage.isNotEmpty) // Display error message if any
+                  Text(
+                    _errorMessage,
+                    style: TextStyle(color: Colors.red),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
