@@ -9,7 +9,7 @@ import 'package:mapbox_2/pages/second_page.dart';
 import 'package:mapbox_2/pages/third_page.dart';
 import 'package:mapbox_2/pages/fourth_page.dart';
 import 'package:mapbox_2/customAppBar.dart';
-import 'package:mapbox_2/pages/main_page.dart';
+import 'package:mapbox_2/pages/map_page.dart';
 
 import 'auth.dart';
 import 'firebase_options.dart'; // Assuming this handles map functionalities

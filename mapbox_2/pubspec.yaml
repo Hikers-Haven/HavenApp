@@ -7,7 +7,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.4 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 # i am pushingggggggggg
 dependencies:
@@ -18,15 +18,24 @@ dependencies:
 
   cupertino_icons: ^1.0.2
   flutter_map: ^6.1.0
-#  geolocator: ^7.6.2
-  geolocator: ^10.1.1
+  geolocator: ^10.0.1
   http: ^1.2.0
   flutter_polyline_points: ^2.0.0
   firebase_core: ^2.25.4
   firebase_auth: ^4.2.6
   cloud_firestore: ^4.15.8
   firebase_database: ^10.4.9
-
+  flutter_mapbox_navigation: ^0.2.2
+  at_location_flutter: ^3.1.12
+  xml: ^6.5.0
+  speedometer: ^1.1.2
+  rxdart: ^0.27.7
+  syncfusion_flutter_gauges: ^24.2.5
+  sensors_plus: ^4.0.2
+  location: ^5.0.0
+  google_maps_flutter: ^2.6.0
+  flutter_compass: ^0.8.0
+  webview_flutter: ^2.0.13
 
 
 
@@ -35,7 +44,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-#  flutter_lints: ^2.0.0
+  #  flutter_lints: ^2.0.0
   flutter_lints: ^3.0.1
 
 
@@ -45,5 +54,12 @@ flutter:
   uses-material-design: true
 
   assets:
-     - assets/peepoGamer.png
+    - assets/peepoGamer.png
+    - assets/geodata.json
+    - assets/map_style.json
+    - assets/gps-navigation.png
+    - assets/navigationicon.png
+    - assets/navicon.png
+    - assets/watersippin.png
+
 

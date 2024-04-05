@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:mapbox_2/customAppBar.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
-class FirstPage extends StatelessWidget{
+class FirstPage extends StatelessWidget {
   const FirstPage({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: customAppBar(),
-      backgroundColor: Colors.green[200],
-      body: Center(
-        child: Text('TRAIL ALERTS HERE'),
-    ));
+      appBar: AppBar(
+        title: Text('Trail Alerts'),
+      ),
+      body: WebView(
+        initialUrl: 'https://www.foxvalleyparkdistrict.org/parks-trails/trails/#closures-maintenance',
+        javascriptMode: JavascriptMode.unrestricted,
+      ),
+    );
   }
 }
