@@ -35,8 +35,6 @@ class _AuthState extends State<Auth> {
 
 
 
-
-
   final FirebaseAuth auth = FirebaseAuth.instance;
 
   Future<void> registerWithEmailandPassword(String email, String password) async {
