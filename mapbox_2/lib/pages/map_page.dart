@@ -1120,6 +1120,11 @@
         if (_trackingStarted) {
           _distanceTraveled = 0.0; // Reset distance when tracking starts
         }
+        else {
+          // If tracking stopped, store the biking activity
+          _getUserId();
+          _storeBikingActivity(_userId);
+        }
       });
     }
 
@@ -1154,7 +1159,7 @@
       });
     }
 
-    void _storeBikingActivity() {
+    void _storeBikingActivity(_userId) {
       if (_userId != null && _lastTrackedLocation != null) {
         // Calculate average speed
         // Calculate distance traveled
