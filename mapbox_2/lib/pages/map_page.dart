@@ -872,6 +872,9 @@
   import 'dart:async';
   import 'dart:convert';
   import 'package:flutter_compass/flutter_compass.dart';
+  import 'package:cloud_firestore/cloud_firestore.dart';
+  import 'package:firebase_auth/firebase_auth.dart';
+
 
   class MapPage extends StatefulWidget {
     @override
@@ -879,6 +882,7 @@
   }
 
   class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
+
     final Completer<GoogleMapController> _controller = Completer();
     final Set<Polyline> _polylines = {};
     final Set<Marker> _markers = {};
@@ -892,16 +896,20 @@
 
     double _distanceTraveled = 0.0;
     LatLng? _lastTrackedLocation;
+    String? _userId;
 
     @override
     void initState() {
       super.initState();
+
       _getCurrentLocation(); // Fetch current location when the app starts
       _initLocationService();
       _startCompassListener();
       WidgetsBinding.instance.addObserver(this);
       _loadTrailData();
     }
+
+
 
 
     @override
@@ -969,6 +977,7 @@
                   }
                   _lastTrackedLocation =
                       LatLng(position.latitude, position.longitude);
+
                 }
               });
               if (!_controller.isCompleted) {
@@ -1040,6 +1049,15 @@
         });
       } catch (e) {
         print('Failed to load GeoJSON data: $e');
+      }
+    }
+// gets the userID
+    Future<void> _getUserId() async {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        setState(() {
+          _userId = user.uid;
+        });
       }
     }
 
@@ -1136,6 +1154,30 @@
       });
     }
 
+    void _storeBikingActivity() {
+      if (_userId != null && _lastTrackedLocation != null) {
+        // Calculate average speed
+        // Calculate distance traveled
+
+        // Store activity in Firestore
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(_userId)
+            .collection('biking_sessions')
+            .add({
+          'timestamp': DateTime.now(),
+          'average_speed': _currentSpeed,
+          'distance_traveled': _distanceTraveled,
+        }).then((_) {
+          // Successfully stored
+          print('Biking activity stored successfully');
+        }).catchError((error) {
+          // Failed to store
+          print('Failed to store biking activity: $error');
+        });
+      }
+    }
+
     @override
     Widget build(BuildContext context) {
       return Scaffold(
@@ -1219,3 +1261,5 @@
       );
     }
   }
+
+

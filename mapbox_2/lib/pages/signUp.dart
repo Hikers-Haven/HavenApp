@@ -48,12 +48,26 @@ class _signUpPageState extends State<signUpPage> {
   }
 
   Future<void> addUserDetails(String email, String firstName) async {
-    await FirebaseFirestore.instance.collection('users').add({
-      'Email': email,
-      'Name': firstName,
-      'Registration Date': DateTime.now(),
-    });
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String userId = user.uid;
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'UserID': userId,
+        'Email': email,
+        'Name': firstName,
+        'Registration Date': DateTime.now(),
+      });
+      // Add the biking_sessions subcollection
+      await FirebaseFirestore.instance.collection('users').doc(userId)
+          .collection('biking_sessions').doc().set({
+        'session': 'dummy_value', // Add any initial dummy data if needed
+      });
+    } else {
+      print('User is null');
+    }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
