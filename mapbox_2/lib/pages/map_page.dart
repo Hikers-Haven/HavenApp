@@ -1019,7 +1019,7 @@
             'lat': 41.993449,
             'lng': -88.295136
           },
-          {'name': 'Batava River Walk', 'lat': 41.85134, 'lng': -88.30813},
+          {'name': 'Batavia River Walk', 'lat': 41.85134, 'lng': -88.30813},
           {'name': 'Island Park', 'lat': 41.88419, 'lng': -88.30224},
           {'name': 'Illinois Ave', 'lat': 41.770920, 'lng': -88.310769},
           {'name': 'Hudson Crossing Park', 'lat': 41.685517, 'lng': -88.354657},
