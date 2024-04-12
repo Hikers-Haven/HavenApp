@@ -148,7 +148,7 @@ class _signUpPageState extends State<signUpPage> {
                 // Sign up Button
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: Colors.lightGreenAccent,
                   ),
                   onPressed: _loading ? null : signUp,
                   child: _loading

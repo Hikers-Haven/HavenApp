@@ -1,9 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:mapbox_2/customAppBar.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mapbox_2/customAppBar.dart';
 
-class FourthPage extends StatelessWidget {
-  const FourthPage({Key? key}) : super(key: key);
+class FourthPage extends StatefulWidget {
+  @override
+  _FourthPageState createState() => _FourthPageState();
+}
+
+class _FourthPageState extends State<FourthPage> {
+  List<ChartData> chartData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBikingActivity();
+  }
+
+  Future<void> _fetchBikingActivity() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String userId = user.uid;
+
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('biking_sessions')
+          .orderBy('timestamp', descending: true)
+          .limit(7)
+          .get();
+
+      List<ChartData> data = [];
+      int index = 1;
+      snapshot.docs.forEach((doc) {
+        // Process each biking session document
+        data.add(ChartData(index, doc['distance_traveled']));
+        index++;
+      });
+
+      setState(() {
+        chartData = data.reversed.toList(); // Reverse the list for correct order
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
