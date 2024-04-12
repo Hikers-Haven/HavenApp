@@ -896,6 +896,7 @@
 
     double _distanceTraveled = 0.0;
     LatLng? _lastTrackedLocation;
+    late DateTime _startTime;
     String? _userId;
 
     @override
@@ -1119,6 +1120,7 @@
         _trackingStarted = !_trackingStarted;
         if (_trackingStarted) {
           _distanceTraveled = 0.0; // Reset distance when tracking starts
+          _startTime = DateTime.now(); // Start tracking time
         }
         else {
           // If tracking stopped, store the biking activity
@@ -1160,9 +1162,16 @@
     }
 
     void _storeBikingActivity(_userId) {
+
       if (_userId != null && _lastTrackedLocation != null) {
         // Calculate average speed
-        // Calculate distance traveled
+        int timeElapsedInSeconds = DateTime.now().difference(_startTime).inSeconds;
+
+        // Convert distance traveled from meters to miles
+        double distanceTraveledInMiles = _distanceTraveled / 1609.34;
+
+        // Calculate average speed in miles per hour (mph)
+        double averageSpeedInMph = distanceTraveledInMiles / (timeElapsedInSeconds / 3600);
 
         // Store activity in Firestore
         FirebaseFirestore.instance
