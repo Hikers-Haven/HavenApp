@@ -37,10 +37,13 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadMapStyle(); // Load map style asynchronously
-    _getCurrentLocation();
     _initLocationService();
     _startCompassListener();
     _loadTrailData();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _getCurrentLocation();
+    });
   }
 
   Future<void> _loadMapStyle() async {
@@ -61,6 +64,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       setState(() {
+        _controller = Completer();
+        _getCurrentLocation();
         _mapKey = UniqueKey(); // Create a new Key
       });
     }
