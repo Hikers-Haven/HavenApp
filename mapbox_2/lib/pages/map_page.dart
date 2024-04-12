@@ -1172,7 +1172,7 @@
             .add({
           'timestamp': DateTime.now(),
           'average_speed': _currentSpeed,
-          'distance_traveled': _distanceTraveled / 1609.34,
+          'distance_traveled': _distanceTraveled,
         }).then((_) {
           // Successfully stored
           print('Biking activity stored successfully');
