@@ -30,6 +30,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   String _mapStyle = ""; // Variable to hold map style JSON
   Key _mapKey = UniqueKey();
 
+  //i swur this gon work
+
   @override
   void initState() {
     super.initState();
