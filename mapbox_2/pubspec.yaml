@@ -61,5 +61,6 @@ flutter:
     - assets/navigationicon.png
     - assets/navicon.png
     - assets/watersippin.png
+    - assets/waterspots.json
 
 
