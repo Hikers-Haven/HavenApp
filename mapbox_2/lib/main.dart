@@ -82,13 +82,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.of(context).push(MaterialPageRoute(builder: (context) => SecondPage()));
                   },
                 ),
-                ListTile(
-                  leading: Icon(Icons.forum),
-                  title: Text('Community', style: TextStyle(fontSize: 20)),
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => ThirdPage()));
-                  },
-                ),
+                // ListTile(
+                //   leading: Icon(Icons.forum),
+                //   title: Text('Community', style: TextStyle(fontSize: 20)),
+                //   onTap: () {
+                //     Navigator.of(context).push(MaterialPageRoute(builder: (context) => ThirdPage()));
+                //   },
+                // ),
                 ListTile(
                   leading: Icon(Icons.bar_chart),
                   title: Text('Personal Progress', style: TextStyle(fontSize: 20)),
