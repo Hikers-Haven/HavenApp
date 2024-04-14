@@ -157,6 +157,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   //       distanceFilter: 5,
   //     );
   //
+  //     double maxDistancePerSecond = 15.0; // Maximum plausible distance per second
+  //
   //     _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
   //       if (_paused) return; // Ignore updates while paused
   //       if (position.accuracy > 50) return; // Continue to ignore if accuracy is too low
@@ -170,23 +172,35 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   //             newLocation.longitude
   //         );
   //
+  //         final DateTime currentTime = DateTime.now();
+  //         final int timeDifferenceInSeconds = (_previousPositionTime != null) ? currentTime.difference(_previousPositionTime!).inSeconds : 0;
+  //
+  //         if (distanceMeters > maxDistancePerSecond * timeDifferenceInSeconds) {
+  //           return; // Skip this update as it's likely an error
+  //         }
+  //
   //         // Convert distance from meters to miles
   //         final double distanceMiles = distanceMeters * 0.000621371;
   //         _distanceTraveled += distanceMiles; // Add the converted distance in miles
-  //         // Calculate speed
-  //         if (_previousPositionTime != null) {
-  //           final DateTime currentTime = DateTime.now();
-  //           final int timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
-  //           if (timeDifferenceInSeconds > 0) {
-  //             final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
-  //             final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
+  //
+  //         // // Calculate speed
+  //         // if (timeDifferenceInSeconds > 0) {
+  //         //   final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
+  //         //   final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
+  //         //   _currentSpeed = speedInMph;
+  //         // }
+  //         if (timeDifferenceInSeconds > 0) {
+  //           final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
+  //           final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
+  //           if (speedInMph <= plausibleSpeedLimit && speedInMph > 0) { // Ensure non-negative, realistic speeds
   //             _currentSpeed = speedInMph;
+  //             _speeds.add(speedInMph); // Add to speed tracking for average speed calculation
   //           }
-  //           _previousPositionTime = currentTime;
   //         }
   //
+  //
   //         _lastTrackedLocation = newLocation;
-  //         _previousPositionTime = DateTime.now();
+  //         _previousPositionTime = currentTime;
   //
   //         if (!_controller.isCompleted) {
   //           _moveCameraToCurrentLocation();
@@ -200,6 +214,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   //     print('Error initializing location service: $e');
   //   }
   // }
+
   void _initLocationService() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -238,6 +253,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       );
 
       double maxDistancePerSecond = 15.0; // Maximum plausible distance per second
+      double minDistanceMoved = 3.0; // Minimum distance in meters to consider a movement significant
 
       _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
         if (_paused) return; // Ignore updates while paused
@@ -252,6 +268,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               newLocation.longitude
           );
 
+          if (distanceMeters < minDistanceMoved) {
+            return; // Skip this update as the movement is not significant
+          }
+
           final DateTime currentTime = DateTime.now();
           final int timeDifferenceInSeconds = (_previousPositionTime != null) ? currentTime.difference(_previousPositionTime!).inSeconds : 0;
 
@@ -259,28 +279,21 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             return; // Skip this update as it's likely an error
           }
 
-          // Convert distance from meters to miles
-          final double distanceMiles = distanceMeters * 0.000621371;
-          _distanceTraveled += distanceMiles; // Add the converted distance in miles
+          if (timeDifferenceInSeconds >= 2) {  // Update speed every 2 seconds
+            // Convert distance from meters to miles
+            final double distanceMiles = distanceMeters * 0.000621371;
+            // _distanceTraveled += distanceMiles; // Add the converted distance in miles
+            updateDistance(distanceMiles);
 
-          // // Calculate speed
-          // if (timeDifferenceInSeconds > 0) {
-          //   final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
-          //   final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
-          //   _currentSpeed = speedInMph;
-          // }
-          if (timeDifferenceInSeconds > 0) {
             final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
             final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
-            if (speedInMph <= plausibleSpeedLimit && speedInMph > 0) { // Ensure non-negative, realistic speeds
-              _currentSpeed = speedInMph;
-              _speeds.add(speedInMph); // Add to speed tracking for average speed calculation
+            if (speedInMph <= plausibleSpeedLimit && speedInMph > 0) {
+              updateSpeed(speedInMph); // Add to speed tracking for average speed calculation
             }
+            _previousPositionTime = currentTime;
           }
 
-
           _lastTrackedLocation = newLocation;
-          _previousPositionTime = currentTime;
 
           if (!_controller.isCompleted) {
             _moveCameraToCurrentLocation();
@@ -295,15 +308,42 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     }
   }
 
+  void updateDistance(double newDistance) {
+    // Implement any smoothing or averaging here if needed
+    _distanceTraveled += newDistance;
+    setState(() {});
+  }
 
 
-  Future<void> _moveCameraToCurrentLocation() async {
+  void updateSpeed(double newSpeed) {
+    if (_speeds.length >= 5) {
+      _speeds.removeFirst();
+    }
+    _speeds.add(newSpeed);
+    _currentSpeed = _speeds.reduce((a, b) => a + b) / _speeds.length;
+    setState(() {});
+  }
+
+
+
+
+  // Future<void> _moveCameraToCurrentLocation() async {
+  //   if (!_controller.isCompleted || _trackingStarted) return;
+  //   final GoogleMapController controller = await _controller.future;
+  //   if (_currentLocation != null) {
+  //     controller.moveCamera(CameraUpdate.newLatLng(_currentLocation!));
+  //   }
+  // }
+
+  void _moveCameraToCurrentLocation() async {
     if (!_controller.isCompleted || _trackingStarted) return;
     final GoogleMapController controller = await _controller.future;
     if (_currentLocation != null) {
-      controller.moveCamera(CameraUpdate.newLatLng(_currentLocation!));
+      controller.animateCamera(CameraUpdate.newLatLngZoom(_currentLocation!, 15)); // Ensure zoom level is consistent
     }
   }
+
+
 
   Future<void> _loadTrailData() async {
     try {
