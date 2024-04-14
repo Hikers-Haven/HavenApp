@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -29,31 +28,28 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   bool _trackingStarted = false;
   bool _paused = false;
   double _distanceTraveled = 0.0;
-  // late DateTime _startTime;
+
   LatLng? _lastTrackedLocation;
-  // String? _userId;
+
   String _mapStyle = "assets/map_style.json"; // Variable to hold map style JSON
   Key _mapKey = UniqueKey();
 
   Timer? _trackingTimer;
   int _elapsedSeconds = 0;
-  // Queue<double> _recentSpeeds = Queue();
-  // int _maxQueueSize = 5;
-
-  // static const double speedThreshold = 0.5; // Speed threshold in m/s
-
-  // Position? _previousPosition;
   DateTime? _previousPositionTime;
 
   late DateTime _sessionStart;
   late DateTime _sessionEnd;
   Duration _pausedDuration = Duration.zero;
   late DateTime _lastPauseTime;
-  final Queue<double> _speeds = Queue<double>(); // To keep track of all valid speed measurements
+  final Queue<double> _speeds =
+      Queue<double>(); // To keep track of all valid speed measurements
 
   double maxDistancePerSecond = 15.0;
 
   double plausibleSpeedLimit = 30.0;
+
+  BitmapDescriptor? waterSpotIcon;
 
   //i swur this gon work
 
@@ -61,14 +57,25 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadMapStyle(); // Load map style asynchronously
     _initLocationService();
     _startCompassListener();
-    _loadTrailData();
-
+    _loadAssetsAndData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _getCurrentLocation();
     });
+  }
+
+  Future<void> _loadAssetsAndData() async {
+    await _loadCustomIcon();
+    await _loadMapStyle();
+    await _loadTrailData();
+    _loadWaterSpots();
+  }
+
+  Future<void> _loadCustomIcon() async {
+    waterSpotIcon = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(devicePixelRatio: 2.5),
+        'assets/watersippin.png');
   }
 
   Future<void> _loadMapStyle() async {
@@ -98,7 +105,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
   Future<void> _getCurrentLocation() async {
     try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
       print('Current Location: ${position.latitude}, ${position.longitude}');
       _updateLocation(position);
     } on PermissionDeniedException {
@@ -120,101 +128,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     _moveCameraToCurrentLocation(); // Move camera to current location
   }
 
-  // void _initLocationService() async {
-  //   try {
-  //     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  //     if (!serviceEnabled) {
-  //       throw 'Location services are disabled.';
-  //     }
-  //
-  //     LocationPermission permission = await Geolocator.checkPermission();
-  //     if (permission == LocationPermission.denied) {
-  //       permission = await Geolocator.requestPermission();
-  //       if (permission != LocationPermission.whileInUse && permission != LocationPermission.always) {
-  //         if (mounted) {
-  //           await showDialog(
-  //             context: context,
-  //             builder: (BuildContext context) {
-  //               return AlertDialog(
-  //                 title: const Text('Location Permission Required'),
-  //                 content: const Text('This app needs location permissions to function. Please grant location permission.'),
-  //                 actions: <Widget>[
-  //                   TextButton(
-  //                     child: const Text('OK'),
-  //                     onPressed: () {
-  //                       SystemChannels.platform.invokeMethod('SystemNavigator.pop');
-  //                     },
-  //                   ),
-  //                 ],
-  //               );
-  //             },
-  //           );
-  //         }
-  //       }
-  //     }
-  //     var locationSettings = const LocationSettings(
-  //       accuracy: LocationAccuracy.high,
-  //       distanceFilter: 5,
-  //     );
-  //
-  //     double maxDistancePerSecond = 15.0; // Maximum plausible distance per second
-  //
-  //     _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
-  //       if (_paused) return; // Ignore updates while paused
-  //       if (position.accuracy > 50) return; // Continue to ignore if accuracy is too low
-  //
-  //       final LatLng newLocation = LatLng(position.latitude, position.longitude);
-  //       if (_lastTrackedLocation != null) {
-  //         final double distanceMeters = Geolocator.distanceBetween(
-  //             _lastTrackedLocation!.latitude,
-  //             _lastTrackedLocation!.longitude,
-  //             newLocation.latitude,
-  //             newLocation.longitude
-  //         );
-  //
-  //         final DateTime currentTime = DateTime.now();
-  //         final int timeDifferenceInSeconds = (_previousPositionTime != null) ? currentTime.difference(_previousPositionTime!).inSeconds : 0;
-  //
-  //         if (distanceMeters > maxDistancePerSecond * timeDifferenceInSeconds) {
-  //           return; // Skip this update as it's likely an error
-  //         }
-  //
-  //         // Convert distance from meters to miles
-  //         final double distanceMiles = distanceMeters * 0.000621371;
-  //         _distanceTraveled += distanceMiles; // Add the converted distance in miles
-  //
-  //         // // Calculate speed
-  //         // if (timeDifferenceInSeconds > 0) {
-  //         //   final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
-  //         //   final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
-  //         //   _currentSpeed = speedInMph;
-  //         // }
-  //         if (timeDifferenceInSeconds > 0) {
-  //           final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
-  //           final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
-  //           if (speedInMph <= plausibleSpeedLimit && speedInMph > 0) { // Ensure non-negative, realistic speeds
-  //             _currentSpeed = speedInMph;
-  //             _speeds.add(speedInMph); // Add to speed tracking for average speed calculation
-  //           }
-  //         }
-  //
-  //
-  //         _lastTrackedLocation = newLocation;
-  //         _previousPositionTime = currentTime;
-  //
-  //         if (!_controller.isCompleted) {
-  //           _moveCameraToCurrentLocation();
-  //         }
-  //       } else {
-  //         _lastTrackedLocation = newLocation;
-  //         _previousPositionTime = DateTime.now();
-  //       }
-  //     });
-  //   } catch (e) {
-  //     print('Error initializing location service: $e');
-  //   }
-  // }
-
   void _initLocationService() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -225,19 +138,22 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission != LocationPermission.whileInUse && permission != LocationPermission.always) {
+        if (permission != LocationPermission.whileInUse &&
+            permission != LocationPermission.always) {
           if (mounted) {
             await showDialog(
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
                   title: const Text('Location Permission Required'),
-                  content: const Text('This app needs location permissions to function. Please grant location permission.'),
+                  content: const Text(
+                      'This app needs location permissions to function. Please grant location permission.'),
                   actions: <Widget>[
                     TextButton(
                       child: const Text('OK'),
                       onPressed: () {
-                        SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+                        SystemChannels.platform
+                            .invokeMethod('SystemNavigator.pop');
                       },
                     ),
                   ],
@@ -252,43 +168,54 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         distanceFilter: 5,
       );
 
-      double maxDistancePerSecond = 15.0; // Maximum plausible distance per second
-      double minDistanceMoved = 3.0; // Minimum distance in meters to consider a movement significant
+      double maxDistancePerSecond =
+          15.0; // Maximum plausible distance per second
+      double minDistanceMoved =
+          3.0; // Minimum distance in meters to consider a movement significant
 
-      _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
+      _positionStreamSubscription =
+          Geolocator.getPositionStream(locationSettings: locationSettings)
+              .listen((Position position) {
         if (_paused) return; // Ignore updates while paused
-        if (position.accuracy > 50) return; // Continue to ignore if accuracy is too low
+        if (position.accuracy > 50)
+          return; // Continue to ignore if accuracy is too low
 
-        final LatLng newLocation = LatLng(position.latitude, position.longitude);
+        final LatLng newLocation =
+            LatLng(position.latitude, position.longitude);
         if (_lastTrackedLocation != null) {
           final double distanceMeters = Geolocator.distanceBetween(
               _lastTrackedLocation!.latitude,
               _lastTrackedLocation!.longitude,
               newLocation.latitude,
-              newLocation.longitude
-          );
+              newLocation.longitude);
 
           if (distanceMeters < minDistanceMoved) {
             return; // Skip this update as the movement is not significant
           }
 
           final DateTime currentTime = DateTime.now();
-          final int timeDifferenceInSeconds = (_previousPositionTime != null) ? currentTime.difference(_previousPositionTime!).inSeconds : 0;
+          final int timeDifferenceInSeconds = (_previousPositionTime != null)
+              ? currentTime.difference(_previousPositionTime!).inSeconds
+              : 0;
 
           if (distanceMeters > maxDistancePerSecond * timeDifferenceInSeconds) {
             return; // Skip this update as it's likely an error
           }
 
-          if (timeDifferenceInSeconds >= 2) {  // Update speed every 2 seconds
+          if (timeDifferenceInSeconds >= 2) {
+            // Update speed every 2 seconds
             // Convert distance from meters to miles
             final double distanceMiles = distanceMeters * 0.000621371;
             // _distanceTraveled += distanceMiles; // Add the converted distance in miles
             updateDistance(distanceMiles);
 
-            final double speedInMetersPerSecond = distanceMeters / timeDifferenceInSeconds;
-            final double speedInMph = speedInMetersPerSecond * 2.23694; // Convert speed from m/s to mph
+            final double speedInMetersPerSecond =
+                distanceMeters / timeDifferenceInSeconds;
+            final double speedInMph = speedInMetersPerSecond *
+                2.23694; // Convert speed from m/s to mph
             if (speedInMph <= plausibleSpeedLimit && speedInMph > 0) {
-              updateSpeed(speedInMph); // Add to speed tracking for average speed calculation
+              updateSpeed(
+                  speedInMph); // Add to speed tracking for average speed calculation
             }
             _previousPositionTime = currentTime;
           }
@@ -314,7 +241,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     setState(() {});
   }
 
-
   void updateSpeed(double newSpeed) {
     if (_speeds.length >= 5) {
       _speeds.removeFirst();
@@ -324,64 +250,72 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     setState(() {});
   }
 
-
-
-
-  // Future<void> _moveCameraToCurrentLocation() async {
-  //   if (!_controller.isCompleted || _trackingStarted) return;
-  //   final GoogleMapController controller = await _controller.future;
-  //   if (_currentLocation != null) {
-  //     controller.moveCamera(CameraUpdate.newLatLng(_currentLocation!));
-  //   }
-  // }
-
   void _moveCameraToCurrentLocation() async {
     if (!_controller.isCompleted || _trackingStarted) return;
     final GoogleMapController controller = await _controller.future;
     if (_currentLocation != null) {
-      controller.animateCamera(CameraUpdate.newLatLngZoom(_currentLocation!, 15)); // Ensure zoom level is consistent
+      controller.animateCamera(CameraUpdate.newLatLngZoom(
+          _currentLocation!, 15)); // Ensure zoom level is consistent
     }
   }
-
-
 
   Future<void> _loadTrailData() async {
     try {
       final String geoJsonString =
-      await rootBundle.loadString('assets/geodata.json');
+          await rootBundle.loadString('assets/geodata.json');
       final data = json.decode(geoJsonString);
-      final List<dynamic> coordinates =
-      data['features'][0]['geometry']['coordinates'];
-      List<LatLng> trailPoints = coordinates
-          .map<LatLng>((coord) => LatLng(coord[1], coord[0]))
-          .toList();
 
-      // Add trail polyline
-      _polylines.add(Polyline(
-        polylineId: const PolylineId("trail"),
-        points: trailPoints,
-        color: Colors.blue,
-        width: 3,
-      ));
+      _polylines.clear();
+      _markers.clear();
 
-      // Load water station waypoints from JSON file
+      print(
+          "Total features found: ${data['features'].length}"); // Debug the count of features
+
+      for (var feature in data['features']) {
+        if (feature['geometry']['type'] == "LineString") {
+          List<LatLng> lineCoordinates =
+              (feature['geometry']['coordinates'] as List)
+                  .map((coord) => LatLng(coord[1], coord[0]))
+                  .toList();
+
+          print(
+              "Adding polyline: ${feature['properties']['name']} with points: ${lineCoordinates.length}"); // Debug the polyline being added
+
+          _polylines.add(Polyline(
+            polylineId: PolylineId(feature['properties']['name']),
+            points: lineCoordinates,
+            color: Colors.blue,
+            width: 5,
+          ));
+        }
+      }
+
+      setState(() {}); // Trigger a rebuild to display new markers and polylines
+    } catch (e) {
+      print('Failed to load geo data: $e');
+    }
+  }
+
+  //water spots function
+  Future<void> _loadWaterSpots() async {
+    try {
       final String waterStationsJsonString =
-      await rootBundle.loadString('assets/waterspots.json');
-      List<Map<String, dynamic>> waterStations = List<Map<String, dynamic>>.from(json.decode(waterStationsJsonString));
+          await rootBundle.loadString('assets/waterspots.json');
+      List<Map<String, dynamic>> waterStations =
+          List<Map<String, dynamic>>.from(json.decode(waterStationsJsonString));
 
-      // Add water station markers
       for (var station in waterStations) {
         _markers.add(Marker(
           markerId: MarkerId(station['name']),
           position: LatLng(station['lat'], station['lng']),
-          icon: await _createMarkerImageFromAsset('assets/watersippin.png'),
+          icon: waterSpotIcon ??
+              BitmapDescriptor
+                  .defaultMarker, // Use the preloaded icon or default
         ));
       }
-
-      setState((){});
-
+      setState(() {}); // Trigger rebuild with new markers
     } catch (e) {
-      print('Failed to load GeoJSON data: $e');
+      print('Failed to load water spots: $e');
     }
   }
 
@@ -392,7 +326,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   Future<BitmapDescriptor> _createMarkerImageFromAsset(String assetName) async {
-    const ImageConfiguration imageConfiguration = ImageConfiguration(devicePixelRatio: 2.5);
+    const ImageConfiguration imageConfiguration =
+        ImageConfiguration(devicePixelRatio: 2.5);
     BitmapDescriptor bitmapDescriptor = await BitmapDescriptor.fromAssetImage(
       imageConfiguration,
       assetName,
@@ -459,7 +394,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
     if (!_trackingStarted) {
       // If tracking is not started, then we are stopping it and should store the session
-      String? userId = await _getUserId(); // This calls the method and waits for the result
+      String? userId =
+          await _getUserId(); // This calls the method and waits for the result
       if (userId != null) {
         _storeBikingActivity(userId); // Pass the user ID to the method
       }
@@ -481,8 +417,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   void _resumeTracking() {
-    _pausedDuration += DateTime.now().difference(_lastPauseTime); // Accumulate paused duration
-    _previousPositionTime = DateTime.now(); // Reset the timer for speed calculation
+    _pausedDuration +=
+        DateTime.now().difference(_lastPauseTime); // Accumulate paused duration
+    _previousPositionTime =
+        DateTime.now(); // Reset the timer for speed calculation
     _positionStreamSubscription?.resume();
     _compassSubscription?.resume();
     _trackingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -506,7 +444,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   void _storeBikingActivity(String? userId) {
     if (userId != null && _lastTrackedLocation != null) {
       // Calculate total elapsed time minus any paused time
-      int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds - _pausedDuration.inSeconds;
+      int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
+          _pausedDuration.inSeconds;
 
       // Convert distance traveled from meters to miles
       // double distanceTraveledInMiles = _distanceTraveled / 1609.34;
@@ -525,8 +464,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
           .add({
         'timestamp': DateTime.now(),
         'average_speed': averageSpeedInMph,
-        'distance_traveled': _distanceTraveled, //used to be distanceTraveledInMiles
-        'time_elapsed': totalElapsedTime, // Store the total elapsed time
+        'distance_traveled': _distanceTraveled,
+        //used to be distanceTraveledInMiles
+        'time_elapsed': totalElapsedTime,
+        // Store the total elapsed time
       }).then((_) {
         // Successfully stored
         print('Biking activity stored successfully');
@@ -549,7 +490,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               target: _currentLocation ?? LatLng(0, 0),
               zoom: 14.0,
             ),
-            style: _mapStyle, // Apply loaded style
+            style: _mapStyle,
+            // Apply loaded style
             polylines: _polylines,
             markers: _markers,
             onMapCreated: (GoogleMapController controller) {
@@ -568,8 +510,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                 ),
                 child: Text(
                   'Speed: ${(_currentSpeed).toStringAsFixed(0)} mph\n'
-                      'Distance: ${(_distanceTraveled).toStringAsFixed(2)} mi\n' // used to divide distance traveled like / 1609.34
-                      'Time: ${Duration(seconds: _elapsedSeconds).toString().split('.').first}', // Display elapsed time
+                  'Distance: ${(_distanceTraveled).toStringAsFixed(2)} mi\n' // used to divide distance traveled like / 1609.34
+                  'Time: ${Duration(seconds: _elapsedSeconds).toString().split('.').first}', // Display elapsed time
                 ),
               ),
             ),
@@ -594,12 +536,13 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                   FloatingActionButton(
                     onPressed: _toggleTracking,
                     backgroundColor:
-                    _trackingStarted ? Colors.red : Colors.green,
+                        _trackingStarted ? Colors.red : Colors.green,
                     child: Icon(
                       _trackingStarted ? Icons.stop : Icons.play_arrow,
                     ),
                   ),
-                  const SizedBox(width: 16), // Add spacing between buttons if needed
+                  const SizedBox(width: 16),
+                  // Add spacing between buttons if needed
                   FloatingActionButton(
                     onPressed: _togglePause,
                     backgroundColor: Colors.orange,

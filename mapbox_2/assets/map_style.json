@@ -10,7 +10,7 @@
     "featureType": "water",
     "elementType": "geometry.fill",
     "stylers": [
-      { "color": "#blue" }
+      { "color": "#90deff" }
     ]
   },
   {
