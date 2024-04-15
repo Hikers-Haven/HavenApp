@@ -285,7 +285,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             polylineId: PolylineId(feature['properties']['name']),
             points: lineCoordinates,
             color: Colors.blue,
-            width: 5,
+            width: 3,
           ));
         }
       }
@@ -369,15 +369,50 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     )));
   }
 
+  // void _toggleTracking() async {
+  //   setState(() {
+  //     _trackingStarted = !_trackingStarted;
+  //     if (_trackingStarted) {
+  //       _sessionStart = DateTime.now(); // Start time of session
+  //       _distanceTraveled = 0.0;
+  //       _pausedDuration = Duration.zero; // Reset paused duration
+  //       _speeds.clear(); // Clear previous speeds
+  //       _lastTrackedLocation = _currentLocation; // Update last tracked location
+  //
+  //       // Start the timer to track elapsed time
+  //       _elapsedSeconds = 0;
+  //       _trackingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //         setState(() {
+  //           _elapsedSeconds++;
+  //         });
+  //       });
+  //     } else {
+  //       _sessionEnd = DateTime.now(); // End time of session
+  //       _trackingTimer?.cancel(); // Stop the timer
+  //     }
+  //   });
+  //
+  //   if (!_trackingStarted) {
+  //     // If tracking is not started, then we are stopping it and should store the session
+  //     String? userId =
+  //         await _getUserId(); // This calls the method and waits for the result
+  //     if (userId != null) {
+  //       _storeBikingActivity(userId); // Pass the user ID to the method
+  //     }
+  //   }
+  // }
   void _toggleTracking() async {
     setState(() {
       _trackingStarted = !_trackingStarted;
+
       if (_trackingStarted) {
+        // Start the tracking session
         _sessionStart = DateTime.now(); // Start time of session
         _distanceTraveled = 0.0;
         _pausedDuration = Duration.zero; // Reset paused duration
         _speeds.clear(); // Clear previous speeds
         _lastTrackedLocation = _currentLocation; // Update last tracked location
+        _startCompassListener(); // Ensure compass listener is started
 
         // Start the timer to track elapsed time
         _elapsedSeconds = 0;
@@ -387,20 +422,24 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
           });
         });
       } else {
+        // Stop the tracking session
         _sessionEnd = DateTime.now(); // End time of session
         _trackingTimer?.cancel(); // Stop the timer
+        _compassSubscription?.cancel(); // Stop compass updates
+
+        _paused = false; // Reset the pause state
       }
     });
 
     if (!_trackingStarted) {
-      // If tracking is not started, then we are stopping it and should store the session
-      String? userId =
-          await _getUserId(); // This calls the method and waits for the result
+      // Handle session storage
+      String? userId = await _getUserId();
       if (userId != null) {
-        _storeBikingActivity(userId); // Pass the user ID to the method
+        _storeBikingActivity(userId);
       }
     }
   }
+
 
   void _recenterMap() async {
     final GoogleMapController controller = await _controller.future;
@@ -494,9 +533,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             // Apply loaded style
             polylines: _polylines,
             markers: _markers,
-            onMapCreated: (GoogleMapController controller) {
-              _controller.complete(controller);
-            },
+              onMapCreated: (GoogleMapController controller) {
+                _controller.complete(controller);
+                if (_currentLocation != null) {
+                  controller.animateCamera(CameraUpdate.newLatLngZoom(_currentLocation!, 15));
+                }
+              },
           ),
           if (_trackingStarted)
             Positioned(
