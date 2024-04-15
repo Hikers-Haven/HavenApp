@@ -128,6 +128,113 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     _moveCameraToCurrentLocation(); // Move camera to current location
   }
 
+  // void _initLocationService() async {
+  //   try {
+  //     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  //     if (!serviceEnabled) {
+  //       throw 'Location services are disabled.';
+  //     }
+  //
+  //     LocationPermission permission = await Geolocator.checkPermission();
+  //     if (permission == LocationPermission.denied) {
+  //       permission = await Geolocator.requestPermission();
+  //       if (permission != LocationPermission.whileInUse &&
+  //           permission != LocationPermission.always) {
+  //         if (mounted) {
+  //           await showDialog(
+  //             context: context,
+  //             builder: (BuildContext context) {
+  //               return AlertDialog(
+  //                 title: const Text('Location Permission Required'),
+  //                 content: const Text(
+  //                     'This app needs location permissions to function. Please grant location permission.'),
+  //                 actions: <Widget>[
+  //                   TextButton(
+  //                     child: const Text('OK'),
+  //                     onPressed: () {
+  //                       SystemChannels.platform
+  //                           .invokeMethod('SystemNavigator.pop');
+  //                     },
+  //                   ),
+  //                 ],
+  //               );
+  //             },
+  //           );
+  //         }
+  //       }
+  //     }
+  //     var locationSettings = const LocationSettings(
+  //       accuracy: LocationAccuracy.high,
+  //       distanceFilter: 5,
+  //     );
+  //
+  //     double maxDistancePerSecond =
+  //         15.0; // Maximum plausible distance per second
+  //     double minDistanceMoved =
+  //         3.0; // Minimum distance in meters to consider a movement significant
+  //
+  //     _positionStreamSubscription =
+  //         Geolocator.getPositionStream(locationSettings: locationSettings)
+  //             .listen((Position position) {
+  //       if (_paused) return; // Ignore updates while paused
+  //       if (position.accuracy > 50)
+  //         return; // Continue to ignore if accuracy is too low
+  //
+  //       final LatLng newLocation =
+  //           LatLng(position.latitude, position.longitude);
+  //       if (_lastTrackedLocation != null) {
+  //         final double distanceMeters = Geolocator.distanceBetween(
+  //             _lastTrackedLocation!.latitude,
+  //             _lastTrackedLocation!.longitude,
+  //             newLocation.latitude,
+  //             newLocation.longitude);
+  //
+  //         if (distanceMeters < minDistanceMoved) {
+  //           return; // Skip this update as the movement is not significant
+  //         }
+  //
+  //         final DateTime currentTime = DateTime.now();
+  //         final int timeDifferenceInSeconds = (_previousPositionTime != null)
+  //             ? currentTime.difference(_previousPositionTime!).inSeconds
+  //             : 0;
+  //
+  //         if (distanceMeters > maxDistancePerSecond * timeDifferenceInSeconds) {
+  //           return; // Skip this update as it's likely an error
+  //         }
+  //
+  //         if (timeDifferenceInSeconds >= 2) {
+  //           // Update speed every 2 seconds
+  //           // Convert distance from meters to miles
+  //           final double distanceMiles = distanceMeters * 0.000621371;
+  //           // _distanceTraveled += distanceMiles; // Add the converted distance in miles
+  //           updateDistance(distanceMiles);
+  //
+  //           final double speedInMetersPerSecond =
+  //               distanceMeters / timeDifferenceInSeconds;
+  //           final double speedInMph = speedInMetersPerSecond *
+  //               2.23694; // Convert speed from m/s to mph
+  //           if (speedInMph <= plausibleSpeedLimit && speedInMph > 0) {
+  //             updateSpeed(
+  //                 speedInMph); // Add to speed tracking for average speed calculation
+  //           }
+  //           _previousPositionTime = currentTime;
+  //         }
+  //
+  //         _lastTrackedLocation = newLocation;
+  //
+  //         if (!_controller.isCompleted) {
+  //           _moveCameraToCurrentLocation();
+  //         }
+  //       } else {
+  //         _lastTrackedLocation = newLocation;
+  //         _previousPositionTime = DateTime.now();
+  //       }
+  //     });
+  //   } catch (e) {
+  //     print('Error initializing location service: $e');
+  //   }
+  // }
+
   void _initLocationService() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -152,8 +259,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                     TextButton(
                       child: const Text('OK'),
                       onPressed: () {
-                        SystemChannels.platform
-                            .invokeMethod('SystemNavigator.pop');
+                        SystemChannels.platform.invokeMethod('SystemNavigator.pop');
                       },
                     ),
                   ],
@@ -168,20 +274,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         distanceFilter: 5,
       );
 
-      double maxDistancePerSecond =
-          15.0; // Maximum plausible distance per second
-      double minDistanceMoved =
-          3.0; // Minimum distance in meters to consider a movement significant
-
-      _positionStreamSubscription =
-          Geolocator.getPositionStream(locationSettings: locationSettings)
-              .listen((Position position) {
+      _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
+          .listen((Position position) {
         if (_paused) return; // Ignore updates while paused
-        if (position.accuracy > 50)
-          return; // Continue to ignore if accuracy is too low
+        if (position.accuracy > 50) return; // Continue to ignore if accuracy is too low
 
-        final LatLng newLocation =
-            LatLng(position.latitude, position.longitude);
+        final LatLng newLocation = LatLng(position.latitude, position.longitude);
         if (_lastTrackedLocation != null) {
           final double distanceMeters = Geolocator.distanceBetween(
               _lastTrackedLocation!.latitude,
@@ -189,45 +287,35 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               newLocation.latitude,
               newLocation.longitude);
 
-          if (distanceMeters < minDistanceMoved) {
-            return; // Skip this update as the movement is not significant
-          }
+          if (distanceMeters < 3.0) return; // Skip as movement is not significant
 
           final DateTime currentTime = DateTime.now();
           final int timeDifferenceInSeconds = (_previousPositionTime != null)
               ? currentTime.difference(_previousPositionTime!).inSeconds
               : 0;
 
-          if (distanceMeters > maxDistancePerSecond * timeDifferenceInSeconds) {
+          if (distanceMeters > 15.0 * timeDifferenceInSeconds) {
             return; // Skip this update as it's likely an error
           }
 
+          // Handle new location and speed
+          double speedInMph = position.speed * 2.23694; // Convert speed from m/s to mph
+          updateSpeed(speedInMph); // Update speed
+
           if (timeDifferenceInSeconds >= 2) {
-            // Update speed every 2 seconds
-            // Convert distance from meters to miles
             final double distanceMiles = distanceMeters * 0.000621371;
-            // _distanceTraveled += distanceMiles; // Add the converted distance in miles
             updateDistance(distanceMiles);
-
-            final double speedInMetersPerSecond =
-                distanceMeters / timeDifferenceInSeconds;
-            final double speedInMph = speedInMetersPerSecond *
-                2.23694; // Convert speed from m/s to mph
-            if (speedInMph <= plausibleSpeedLimit && speedInMph > 0) {
-              updateSpeed(
-                  speedInMph); // Add to speed tracking for average speed calculation
-            }
-            _previousPositionTime = currentTime;
           }
 
+          _previousPositionTime = currentTime;
           _lastTrackedLocation = newLocation;
-
-          if (!_controller.isCompleted) {
-            _moveCameraToCurrentLocation();
-          }
         } else {
           _lastTrackedLocation = newLocation;
           _previousPositionTime = DateTime.now();
+        }
+
+        if (!_controller.isCompleted) {
+          _moveCameraToCurrentLocation();
         }
       });
     } catch (e) {
@@ -235,19 +323,36 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     }
   }
 
+
   void updateDistance(double newDistance) {
     // Implement any smoothing or averaging here if needed
     _distanceTraveled += newDistance;
     setState(() {});
   }
 
+  // void updateSpeed(double newSpeed) {
+  //   if (_speeds.length >= 5) {
+  //     _speeds.removeFirst();
+  //   }
+  //   _speeds.add(newSpeed);
+  //   _currentSpeed = _speeds.reduce((a, b) => a + b) / _speeds.length;
+  //   setState(() {});
+  // }
+
+  // This function updates the speed and adds it to a list for averaging.
   void updateSpeed(double newSpeed) {
-    if (_speeds.length >= 5) {
-      _speeds.removeFirst();
+    // Check speed is within a plausible limit before adding
+    if (newSpeed <= plausibleSpeedLimit) {
+      if (_speeds.length >= 100) {  // Limiting the size of the queue to the last 100 entries
+        _speeds.removeFirst();
+      }
+      _speeds.add(newSpeed);
     }
-    _speeds.add(newSpeed);
-    _currentSpeed = _speeds.reduce((a, b) => a + b) / _speeds.length;
-    setState(() {});
+
+    // Update the current speed display without affecting average calculation
+    setState(() {
+      _currentSpeed = newSpeed;
+    });
   }
 
   void _moveCameraToCurrentLocation() async {
@@ -480,20 +585,53 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     });
   }
 
+  // void _storeBikingActivity(String? userId) {
+  //   if (userId != null && _lastTrackedLocation != null) {
+  //     // Calculate total elapsed time minus any paused time
+  //     int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
+  //         _pausedDuration.inSeconds;
+  //
+  //     // Convert distance traveled from meters to miles
+  //     // double distanceTraveledInMiles = _distanceTraveled / 1609.34;
+  //
+  //     // Calculate average speed using the speeds list
+  //     double averageSpeedInMph = _speeds.isNotEmpty
+  //         ? _speeds.reduce((a, b) => a + b) / _speeds.length
+  //         : 0.0;
+  //     //this checks if the list is empty before calculating the average speed by summing all the speeds and dividing by the length of the list
+  //
+  //     // Store activity in Firestore
+  //     FirebaseFirestore.instance
+  //         .collection('users')
+  //         .doc(userId)
+  //         .collection('biking_sessions')
+  //         .add({
+  //       'timestamp': DateTime.now(),
+  //       'average_speed': averageSpeedInMph,
+  //       'distance_traveled': _distanceTraveled,
+  //       //used to be distanceTraveledInMiles
+  //       'time_elapsed': totalElapsedTime,
+  //       // Store the total elapsed time
+  //     }).then((_) {
+  //       // Successfully stored
+  //       print('Biking activity stored successfully');
+  //     }).catchError((error) {
+  //       // Failed to store
+  //       print('Failed to store biking activity: $error');
+  //     });
+  //   }
+  // }
+
+  // This function calculates and stores the session data in Firestore
   void _storeBikingActivity(String? userId) {
     if (userId != null && _lastTrackedLocation != null) {
       // Calculate total elapsed time minus any paused time
-      int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
-          _pausedDuration.inSeconds;
+      int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds - _pausedDuration.inSeconds;
 
-      // Convert distance traveled from meters to miles
-      // double distanceTraveledInMiles = _distanceTraveled / 1609.34;
-
-      // Calculate average speed using the speeds list
+      // Calculate average speed using all collected speeds
       double averageSpeedInMph = _speeds.isNotEmpty
           ? _speeds.reduce((a, b) => a + b) / _speeds.length
-          : 0.0;
-      //this checks if the list is empty before calculating the average speed by summing all the speeds and dividing by the length of the list
+          : 0.0;  // Ensuring division by zero does not occur
 
       // Store activity in Firestore
       FirebaseFirestore.instance
@@ -504,14 +642,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         'timestamp': DateTime.now(),
         'average_speed': averageSpeedInMph,
         'distance_traveled': _distanceTraveled,
-        //used to be distanceTraveledInMiles
         'time_elapsed': totalElapsedTime,
-        // Store the total elapsed time
       }).then((_) {
-        // Successfully stored
         print('Biking activity stored successfully');
       }).catchError((error) {
-        // Failed to store
         print('Failed to store biking activity: $error');
       });
     }
