@@ -29,6 +29,12 @@ class _SecondPageState extends State<SecondPage> {
   String selectedText = "First Tab";
   List<Object?> dataList = []; // List to hold fetched data
 
+  @override
+  void initState() {
+    super.initState();
+    fetchData("Water Stations"); // Fetch data for the first category
+  }
+
   Future<void> fetchData(String category) async {
     final ref = FirebaseDatabase.instance.ref();
     dataList.clear(); // Clear the list before fetching new data
