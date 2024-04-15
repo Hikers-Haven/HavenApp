@@ -63,5 +63,8 @@ flutter:
     - assets/navicon.png
     - assets/watersippin.png
     - assets/waterspots.json
+    - assets/repairstations.json
+    - assets/servicestation.png
+    - assets/waterenergy.png
 
 

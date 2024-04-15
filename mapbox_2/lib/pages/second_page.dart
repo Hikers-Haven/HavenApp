@@ -195,7 +195,8 @@ class _VoteWidgetState extends State<VoteWidget> {
   @override
   void initState() {
     super.initState();
-    _votesRef = FirebaseDatabase.instance.ref().child('votes').child(widget.textAreaId);
+    _votesRef =
+        FirebaseDatabase.instance.ref().child('votes').child(widget.textAreaId);
     _fetchVoteCounts();
   }
 
@@ -224,7 +225,9 @@ class _VoteWidgetState extends State<VoteWidget> {
       bool hasVoted = await hasUserVoted(userId, textAreaId);
       if (!hasVoted) {
         await recordUserVote(userId, textAreaId);
-        final Map<String, dynamic> updateData = {'upvote': ServerValue.increment(1)};
+        final Map<String, dynamic> updateData = {
+          'upvote': ServerValue.increment(1)
+        };
         await _votesRef.update(updateData);
         setState(() {
           _upvoteCount++;
@@ -244,7 +247,9 @@ class _VoteWidgetState extends State<VoteWidget> {
       bool hasVoted = await hasUserVoted(userId, textAreaId);
       if (!hasVoted) {
         await recordUserVote(userId, textAreaId);
-        final Map<String, dynamic> updateData = {'downvote': ServerValue.increment(1)};
+        final Map<String, dynamic> updateData = {
+          'downvote': ServerValue.increment(1)
+        };
         await _votesRef.update(updateData);
         setState(() {
           _downvoteCount++;
