@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +18,8 @@ class MyData {
   final dynamic _lng;
 
   MyData(this._pid, this._lat, this._lng);
+
+  dynamic get pid => _pid; // Getter for pid
 
   @override
   String toString() {
@@ -133,6 +137,8 @@ class _SecondPageState extends State<SecondPage> {
               child: ListView.builder(
                 itemCount: dataList.length,
                 itemBuilder: (context, index) {
+                  final MyData data = dataList[index] as MyData;
+                  final String pid = data.pid;
                   return Column(
                     children: [
                       ListTile(
@@ -150,7 +156,7 @@ class _SecondPageState extends State<SecondPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      VoteWidget(textAreaId: '',), // Adding the VoteWidget here
+                      VoteWidget(textAreaId: pid), // Pass pid as the unique identifier
                     ],
                   );
                 },
@@ -201,8 +207,7 @@ class _VoteWidgetState extends State<VoteWidget> {
   @override
   void initState() {
     super.initState();
-    _votesRef =
-        FirebaseDatabase.instance.ref().child('votes').child(widget.textAreaId);
+    _votesRef = FirebaseDatabase.instance.ref().child('votes').child(widget.textAreaId);
     _fetchVoteCounts();
   }
 
@@ -227,10 +232,9 @@ class _VoteWidgetState extends State<VoteWidget> {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       String userId = user.uid;
-      String textAreaId = ''; // Replace with the ID of the text area
-      bool hasVoted = await hasUserVoted(userId, textAreaId);
+      bool hasVoted = await hasUserVoted(userId, widget.textAreaId); // Use widget.textAreaId
       if (!hasVoted) {
-        await recordUserVote(userId, textAreaId);
+        await recordUserVote(userId, widget.textAreaId); // Use widget.textAreaId
         final Map<String, dynamic> updateData = {
           'upvote': ServerValue.increment(1)
         };
@@ -249,10 +253,9 @@ class _VoteWidgetState extends State<VoteWidget> {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       String userId = user.uid;
-      String textAreaId = ''; // Replace with the ID of the text area
-      bool hasVoted = await hasUserVoted(userId, textAreaId);
+      bool hasVoted = await hasUserVoted(userId, widget.textAreaId); // Use widget.textAreaId
       if (!hasVoted) {
-        await recordUserVote(userId, textAreaId);
+        await recordUserVote(userId, widget.textAreaId); // Use widget.textAreaId
         final Map<String, dynamic> updateData = {
           'downvote': ServerValue.increment(1)
         };
@@ -266,6 +269,7 @@ class _VoteWidgetState extends State<VoteWidget> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
