@@ -18,6 +18,29 @@ class _FourthPageState extends State<FourthPage> {
     _fetchBikingActivity();
   }
 
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Personal Progress"),
+          content: Text(
+            "This page displays biking activity over the past week."
+                "It shows the distance traveled in each biking session."
+                "You can use this information to track your progress over time.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Got It"),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Future<void> _fetchBikingActivity() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -48,6 +71,7 @@ class _FourthPageState extends State<FourthPage> {
 
   @override
   Widget build(BuildContext context) {
+
     final List<ChartData> chartData = [
       ChartData(1, 7.2),
       ChartData(2, 6.7),
@@ -74,8 +98,19 @@ class _FourthPageState extends State<FourthPage> {
         transform: const GradientRotation(90 * (3.14 / 180)));
 
     return Scaffold(
-        appBar: customAppBar(),
-        backgroundColor: Colors.green[900],
+        appBar: AppBar(
+          title: Text("Fox Valley Cyclists"),
+          backgroundColor: Colors.lightGreen[300],
+          actions: [
+            IconButton(
+              icon: Icon(Icons.info),
+              onPressed: () {
+                _showInfoDialog(context);
+              },
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
         body: Center(
             child: ListView(
               children: <Widget>[

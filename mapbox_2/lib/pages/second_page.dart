@@ -90,6 +90,14 @@ class _SecondPageState extends State<SecondPage> {
       appBar: AppBar(
         title: Text("Fox Valley Cyclists"),
         backgroundColor: Colors.lightGreen[300],
+        actions: [
+          IconButton(
+            icon: Icon(Icons.info),
+            onPressed: () {
+              _showInfoDialog(context);
+            },
+          ),
+        ],
       ),
       backgroundColor: Colors.green[200],
       body: Container(
@@ -167,6 +175,30 @@ class _SecondPageState extends State<SecondPage> {
       ),
     );
   }
+
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Points Of Intrest"),
+          content: Text(
+            "This page displays information about water stations and repair stations for cyclists."
+                "You can select a category from the top buttons to view the corresponding stations on the map."
+                "Each station is accompanied by an upvote/downvote feature to provide feedback on its quality.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Got It"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 Future<bool> hasUserVoted(String userId, String textAreaId) async {
@@ -227,6 +259,7 @@ class _VoteWidgetState extends State<VoteWidget> {
       });
     }
   }
+
 
   Future<void> _upvote() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -294,4 +327,7 @@ class _VoteWidgetState extends State<VoteWidget> {
       ],
     );
   }
+
+
 }
+

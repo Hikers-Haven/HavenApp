@@ -73,7 +73,38 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     _loadWaterSpots();
     _loadRepairStations();
   }
-
+  void _showWalkthrough() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return SimpleDialog(
+          title: Text('Map Walkthrough'),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Welcome to the map! Here you can see your current location, '
+                    'track your biking sessions, view water spots and repair stations, '
+                    'and much more. Use the play button to start tracking your biking '
+                    'session, and the pause button to pause/resume. You can also click '
+                    'on the GPS icon to recenter the map on your current location. '
+                    'Enjoy your biking experience!',
+              ),
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text('Got It!'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Future<void> _loadCustomIcon() async {
     waterSpotIcon = await BitmapDescriptor.fromAssetImage(
         const ImageConfiguration(devicePixelRatio: 2.5),
@@ -621,8 +652,20 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                 ],
               ),
             ),
+
+          ),
+          Positioned(
+            top: 80,
+            right: 20,
+            child: !_trackingStarted
+                ? FloatingActionButton(
+              onPressed: _showWalkthrough,
+              backgroundColor: Colors.grey,
+              child: const Icon(Icons.help_outline),
+            ) : SizedBox(),
           ),
         ],
+
       ),
     );
   }
