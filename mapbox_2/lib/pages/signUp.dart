@@ -60,7 +60,14 @@ class _signUpPageState extends State<signUpPage> {
       // Add the biking_sessions subcollection
       await FirebaseFirestore.instance.collection('users').doc(userId)
           .collection('biking_sessions').doc().set({
-        'session': 'dummy_value', // Add any initial dummy data if needed
+        'session': 'dummy_value', // initial test value
+      });
+      // add personal_best subcollection
+      await FirebaseFirestore.instance.collection('users').doc(userId)
+          .collection('personal_best').doc().set({
+        'fastest_speed': 0.0, // Initial value
+        'longest_distance': 0.0, // Initial value
+        'longest_duration': 0, // Initial value
       });
     } else {
       print('User is null');

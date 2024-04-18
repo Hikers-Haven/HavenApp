@@ -542,9 +542,47 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     });
   }
 
+  // Define a method to update personal best statistics
+  //Update the personal best scores based on the provided statistics
+  Future<void> updatePersonalBest(String userId, double newSpeed, double newDistance, int newDuration) async {
+    // Get the reference to the user's personal best document
+    DocumentReference personalBestDoc = FirebaseFirestore.instance.collection('users').doc(userId).collection('personal_best').doc('personalbestdoc');
+
+    // Get the current personal best data
+    DocumentSnapshot snapshot = await personalBestDoc.get();
+
+    if (snapshot.exists) {
+      // Document exists, update the personal best scores if needed
+      Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?;
+
+      double currentFastestSpeed = data?['fastest_speed'] ?? 0.0;
+      double currentLongestDistance = data?['longest_distance'] ?? 0.0;
+      int currentLongestDuration = data?['longest_duration'] ?? 0;
+
+      // Update personal best scores if new data exceeds current records
+      if (newSpeed > currentFastestSpeed || currentFastestSpeed == 0.0) {
+        await personalBestDoc.update({'fastest_speed': newSpeed});
+      }
+      if (newDistance > currentLongestDistance || currentLongestDistance == 0.0) {
+        await personalBestDoc.update({'longest_distance': newDistance});
+      }
+      if (newDuration > currentLongestDuration || currentLongestDuration == 0) {
+        await personalBestDoc.update({'longest_duration': newDuration});
+      }
+    } else {
+      // Document doesn't exist, create a new one with the provided data
+      await personalBestDoc.set({
+        'fastest_speed': newSpeed,
+        'longest_distance': newDistance,
+        'longest_duration': newDuration,
+      });
+    }
+  }
+
+
 
   // This function calculates and stores the session data in Firestore
-  void _storeBikingActivity(String? userId) {
+  void _storeBikingActivity(String? userId) async {
     if (userId != null && _lastTrackedLocation != null) {
       // Calculate total elapsed time minus any paused time
       int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
@@ -570,7 +608,11 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       }).catchError((error) {
         print('Failed to store biking activity: $error');
       });
+      // Update personal best scores
+      updatePersonalBest(userId, averageSpeedInMph, _distanceTraveled, totalElapsedTime);
+
     }
+
   }
 
   @override
