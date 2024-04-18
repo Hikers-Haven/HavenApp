@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 // Import pages for navigation
 import 'package:mapbox_2/pages/first_page.dart';
 import 'package:mapbox_2/pages/second_page.dart';
-import 'package:mapbox_2/pages/third_page.dart';
 import 'package:mapbox_2/pages/progress_page.dart';
 import 'package:mapbox_2/customAppBar.dart';
 import 'package:mapbox_2/pages/map_page.dart';
