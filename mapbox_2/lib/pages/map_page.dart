@@ -602,7 +602,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         'timestamp': DateTime.now(),
         'average_speed': averageSpeedInMph,
         'distance_traveled': _distanceTraveled,
-        'time_elapsed': totalElapsedTime,
+        'time_elapsed': totalElapsedTime / 60, // Convert seconds to minutes
       }).then((_) {
         print('Biking activity stored successfully');
       }).catchError((error) {
