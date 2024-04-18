@@ -1,19 +1,15 @@
-
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 // Import pages for navigation
 import 'package:mapbox_2/pages/first_page.dart';
 import 'package:mapbox_2/pages/second_page.dart';
-import 'package:mapbox_2/pages/third_page.dart';
 import 'package:mapbox_2/pages/progress_page.dart';
 import 'package:mapbox_2/customAppBar.dart';
 import 'package:mapbox_2/pages/map_page.dart';
 
 import 'auth.dart';
 import 'firebase_options.dart'; // Assuming this handles map functionalities
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
