@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mapbox_2/customAppBar.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:intl/intl.dart';
 
@@ -23,6 +22,29 @@ class _FourthPageState extends State<FourthPage> {
     _fetchBikingActivity();
   }
 
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Personal Progress"),
+          content: Text(
+            "This page displays biking activity over the past week."
+                "It shows the distance traveled in each biking session."
+                "You can use this information to track your progress over time.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Got It"),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Future<void> _fetchBikingActivity() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -132,8 +154,19 @@ class _FourthPageState extends State<FourthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: customAppBar(),
-        backgroundColor: Colors.green[900],
+        appBar: AppBar(
+          title: Text("Fox Valley Cyclists"),
+          backgroundColor: Colors.lightGreen[300],
+          actions: [
+            IconButton(
+              icon: Icon(Icons.info),
+              onPressed: () {
+                _showInfoDialog(context);
+              },
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
         body: Center(
             child: ListView(
               children: <Widget>[
