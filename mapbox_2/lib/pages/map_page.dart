@@ -43,7 +43,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   Duration _pausedDuration = Duration.zero;
   late DateTime _lastPauseTime;
   final Queue<double> _speeds =
-      Queue<double>(); // To keep track of all valid speed measurements
+      Queue<double>();
 
   double maxDistancePerSecond = 15.0;
 
@@ -51,8 +51,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
   BitmapDescriptor? waterSpotIcon;
   BitmapDescriptor? repairStationIcon;
-
-  //i swur this gon work
 
   @override
   void initState() {
@@ -78,10 +76,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
-          title: Text('Map Walkthrough'),
+          title: const Text('Map Walkthrough'),
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
               child: Text(
                 'Welcome to the map! Here you can see your current location, '
                     'track your biking sessions, view water spots and repair stations, '
@@ -91,13 +89,13 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                     'Enjoy your biking experience!',
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop(); // Close the dialog
                 },
-                child: Text('Got It!'),
+                child: const Text('Got It!'),
               ),
             ),
           ],
@@ -117,7 +115,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
   Future<void> _loadMapStyle() async {
     _mapStyle = await rootBundle.loadString("assets/map_style.json");
-    setState(() {}); // Trigger rebuild with loaded style
+    setState(() {});
   }
 
   @override
@@ -135,7 +133,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       setState(() {
         _controller = Completer();
         _getCurrentLocation();
-        _mapKey = UniqueKey(); // Create a new Key
+        _mapKey = UniqueKey();
       });
     }
   }
@@ -148,10 +146,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       _updateLocation(position);
     } on PermissionDeniedException {
       print('Location permissions are denied');
-      // Handle this exception specifically
+
     } on LocationServiceDisabledException {
       print('Location services are disabled');
-      // Handle this exception specifically
     } catch (e) {
       print('Error fetching current location: $e');
     }
@@ -160,9 +157,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   void _updateLocation(Position position) {
     setState(() {
       _currentLocation = LatLng(position.latitude, position.longitude);
-      _updateMarker(position); // Update the marker
+      _updateMarker(position);
     });
-    _moveCameraToCurrentLocation(); // Move camera to current location
+    _moveCameraToCurrentLocation();
   }
 
 
@@ -207,8 +204,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
       _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
           .listen((Position position) {
-        if (_paused) return; // Ignore updates while paused
-        if (position.accuracy > 50) return; // Continue to ignore if accuracy is too low
+        if (_paused) return;
+        if (position.accuracy > 50) return;
 
         final LatLng newLocation = LatLng(position.latitude, position.longitude);
         if (_lastTrackedLocation != null) {
@@ -218,7 +215,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               newLocation.latitude,
               newLocation.longitude);
 
-          if (distanceMeters < 3.0) return; // Skip as movement is not significant
+          if (distanceMeters < 3.0) return;
 
           final DateTime currentTime = DateTime.now();
           final int timeDifferenceInSeconds = (_previousPositionTime != null)
@@ -226,12 +223,11 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               : 0;
 
           if (distanceMeters > 15.0 * timeDifferenceInSeconds) {
-            return; // Skip this update as it's likely an error
+            return;
           }
 
-          // Handle new location and speed
-          double speedInMph = position.speed * 2.23694; // Convert speed from m/s to mph
-          updateSpeed(speedInMph); // Update speed
+          double speedInMph = position.speed * 2.23694;
+          updateSpeed(speedInMph);
 
           if (timeDifferenceInSeconds >= 2) {
             final double distanceMiles = distanceMeters * 0.000621371;
@@ -256,23 +252,19 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
 
   void updateDistance(double newDistance) {
-    // Implement any smoothing or averaging here if needed
     _distanceTraveled += newDistance;
     setState(() {});
   }
 
-
-  // This function updates the speed and adds it to a list for averaging.
   void updateSpeed(double newSpeed) {
-    // Check speed is within a plausible limit before adding
     if (newSpeed <= plausibleSpeedLimit) {
-      if (_speeds.length >= 100) {  // Limiting the size of the queue to the last 100 entries
+      if (_speeds.length >= 100) {
         _speeds.removeFirst();
       }
       _speeds.add(newSpeed);
     }
 
-    // Update the current speed display without affecting average calculation
+
     setState(() {
       _currentSpeed = newSpeed;
     });
@@ -283,7 +275,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     final GoogleMapController controller = await _controller.future;
     if (_currentLocation != null) {
       controller.animateCamera(CameraUpdate.newLatLngZoom(
-          _currentLocation!, 15)); // Ensure zoom level is consistent
+          _currentLocation!, 15));
     }
   }
 
@@ -296,8 +288,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       _polylines.clear();
       _markers.clear();
 
-      print(
-          "Total features found: ${data['features'].length}"); // Debug the count of features
+      print("Total features found: ${data['features'].length}");
 
       for (var feature in data['features']) {
         if (feature['geometry']['type'] == "LineString") {
@@ -306,8 +297,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                   .map((coord) => LatLng(coord[1], coord[0]))
                   .toList();
 
-          print(
-              "Adding polyline: ${feature['properties']['name']} with points: ${lineCoordinates.length}"); // Debug the polyline being added
+          print("Adding polyline: ${feature['properties']['name']} with points: ${lineCoordinates.length}");
 
           _polylines.add(Polyline(
             polylineId: PolylineId(feature['properties']['name']),
@@ -318,13 +308,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         }
       }
 
-      setState(() {}); // Trigger a rebuild to display new markers and polylines
+      setState(() {});
     } catch (e) {
       print('Failed to load geo data: $e');
     }
   }
 
-  //water spots function
   Future<void> _loadWaterSpots() async {
     try {
       final String waterStationsJsonString = await rootBundle.loadString('assets/waterspots.json');
@@ -340,7 +329,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
           _markers.add(Marker(
             markerId: MarkerId(station['name']),
             position: LatLng(station['lat'], station['lng']),
-            icon: waterSpotIcon!, // Use the initially loaded icon
+            icon: waterSpotIcon!,
           ));
         }
       });
@@ -377,10 +366,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     }
   }
 
-
-
-
-// gets the userID
   Future<String?> _getUserId() async {
     User? user = FirebaseAuth.instance.currentUser;
     return user?.uid;
@@ -395,33 +380,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     );
     return bitmapDescriptor;
   }
-
-  // void _updateMarker(Position position) async {
-  //   _markers.clear();
-  //   _markers.add(Marker(
-  //     markerId: const MarkerId("currentLocation"),
-  //     position: LatLng(position.latitude, position.longitude),
-  //     icon: await _createMarkerImageFromAsset(
-  //         'assets/navicon.png'), // Change 'your_image.png' to your asset image path
-  //   ));
-  // }
-
-  // void _updateMarker(Position position) async {
-  //   // First, clear only the current location marker if it exists
-  //   _markers.removeWhere((m) => m.markerId == const MarkerId("currentLocation"));
-  //
-  //   // Add the current location marker
-  //   _markers.add(Marker(
-  //     markerId: const MarkerId("currentLocation"),
-  //     position: LatLng(position.latitude, position.longitude),
-  //     icon: await _createMarkerImageFromAsset('assets/navicon.png'),
-  //   ));
-  //
-  //   // Load or refresh water spots
-  //   await _loadWaterSpots();  // Assuming this method is adapted to handle adding markers efficiently
-  //
-  //   setState(() {});
-  // }
 
   void _updateMarker(Position position) async {
     _markers.removeWhere((m) => m.markerId == const MarkerId("currentLocation"));
@@ -468,15 +426,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       _trackingStarted = !_trackingStarted;
 
       if (_trackingStarted) {
-        // Start the tracking session
-        _sessionStart = DateTime.now(); // Start time of session
+        _sessionStart = DateTime.now();
         _distanceTraveled = 0.0;
-        _pausedDuration = Duration.zero; // Reset paused duration
-        _speeds.clear(); // Clear previous speeds
-        _lastTrackedLocation = _currentLocation; // Update last tracked location
-        _startCompassListener(); // Ensure compass listener is started
-
-        // Start the timer to track elapsed time
+        _pausedDuration = Duration.zero;
+        _speeds.clear();
+        _lastTrackedLocation = _currentLocation;
+        _startCompassListener();
         _elapsedSeconds = 0;
         _trackingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           setState(() {
@@ -484,17 +439,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
           });
         });
       } else {
-        // Stop the tracking session
-        _sessionEnd = DateTime.now(); // End time of session
-        _trackingTimer?.cancel(); // Stop the timer
-        _compassSubscription?.cancel(); // Stop compass updates
+        _sessionEnd = DateTime.now();
+        _trackingTimer?.cancel();
+        _compassSubscription?.cancel();
 
-        _paused = false; // Reset the pause state
+        _paused = false;
       }
     });
 
     if (!_trackingStarted) {
-      // Handle session storage
       String? userId = await _getUserId();
       if (userId != null) {
         _storeBikingActivity(userId);
@@ -513,15 +466,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   void _pauseTracking() {
     _positionStreamSubscription?.pause();
     _compassSubscription?.pause();
-    _lastPauseTime = DateTime.now(); // Mark the time when paused
+    _lastPauseTime = DateTime.now();
     _trackingTimer?.cancel();
   }
 
   void _resumeTracking() {
     _pausedDuration +=
-        DateTime.now().difference(_lastPauseTime); // Accumulate paused duration
+        DateTime.now().difference(_lastPauseTime);
     _previousPositionTime =
-        DateTime.now(); // Reset the timer for speed calculation
+        DateTime.now();
     _positionStreamSubscription?.resume();
     _compassSubscription?.resume();
     _trackingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -542,58 +495,55 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     });
   }
 
-  // Define a method to update personal best statistics
-  //Update the personal best scores based on the provided statistics
   Future<void> updatePersonalBest(String userId, double newSpeed, double newDistance, int newDuration) async {
-    // Get the reference to the user's personal best document
-    DocumentReference personalBestDoc = FirebaseFirestore.instance.collection('users').doc(userId).collection('personal_best').doc('personalbestdoc');
+    DocumentReference personalBestDoc = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('personal_best')
+        .doc('personalbestdoc');
 
-    // Get the current personal best data
-    DocumentSnapshot snapshot = await personalBestDoc.get();
+    return FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(personalBestDoc);
 
-    if (snapshot.exists) {
-      // Document exists, update the personal best scores if needed
-      Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?;
-
-      double currentFastestSpeed = data?['fastest_speed'] ?? 0.0;
-      double currentLongestDistance = data?['longest_distance'] ?? 0.0;
-      int currentLongestDuration = data?['longest_duration'] ?? 0;
-
-      // Update personal best scores if new data exceeds current records
-      if (newSpeed > currentFastestSpeed || currentFastestSpeed == 0.0) {
-        await personalBestDoc.update({'fastest_speed': newSpeed});
+      if (!snapshot.exists) {
+        transaction.set(personalBestDoc, {
+          'fastest_speed': newSpeed,
+          'longest_distance': newDistance,
+          'longest_duration': newDuration,
+        });
+        return;
       }
-      if (newDistance > currentLongestDistance || currentLongestDistance == 0.0) {
-        await personalBestDoc.update({'longest_distance': newDistance});
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+
+      double currentFastestSpeed = data['fastest_speed'] ?? 0.0;
+      double currentLongestDistance = data['longest_distance'] ?? 0.0;
+      int currentLongestDuration = data['longest_duration'] ?? 0;
+
+      Map<String, dynamic> updates = {};
+      if (newSpeed > currentFastestSpeed) {
+        updates['fastest_speed'] = newSpeed;
       }
-      if (newDuration > currentLongestDuration || currentLongestDuration == 0) {
-        await personalBestDoc.update({'longest_duration': newDuration});
+      if (newDistance > currentLongestDistance) {
+        updates['longest_distance'] = newDistance;
       }
-    } else {
-      // Document doesn't exist, create a new one with the provided data
-      await personalBestDoc.set({
-        'fastest_speed': newSpeed,
-        'longest_distance': newDistance,
-        'longest_duration': newDuration,
-      });
-    }
+      if (newDuration > currentLongestDuration) {
+        updates['longest_duration'] = newDuration;
+      }
+
+      if (updates.isNotEmpty) {
+        transaction.update(personalBestDoc, updates);
+      }
+    });
   }
-
-
-
-  // This function calculates and stores the session data in Firestore
   void _storeBikingActivity(String? userId) async {
     if (userId != null && _lastTrackedLocation != null) {
-      // Calculate total elapsed time minus any paused time
       int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
           _pausedDuration.inSeconds;
 
-      // Calculate average speed using all collected speeds
       double averageSpeedInMph = _speeds.isNotEmpty
           ? _speeds.reduce((a, b) => a + b) / _speeds.length
-          : 0.0; // Ensuring division by zero does not occur
+          : 0.0;
 
-      // Store activity in Firestore
       FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -602,13 +552,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         'timestamp': DateTime.now(),
         'average_speed': averageSpeedInMph,
         'distance_traveled': _distanceTraveled,
-        'time_elapsed': totalElapsedTime / 60, // Convert seconds to minutes
+        'time_elapsed': totalElapsedTime / 60,
       }).then((_) {
         print('Biking activity stored successfully');
       }).catchError((error) {
         print('Failed to store biking activity: $error');
       });
-      // Update personal best scores
       updatePersonalBest(userId, averageSpeedInMph, _distanceTraveled, totalElapsedTime);
 
     }
@@ -650,8 +599,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                 ),
                 child: Text(
                   'Speed: ${(_currentSpeed).toStringAsFixed(0)} mph\n'
-                  'Distance: ${(_distanceTraveled).toStringAsFixed(2)} mi\n' // used to divide distance traveled like / 1609.34
-                  'Time: ${Duration(seconds: _elapsedSeconds).toString().split('.').first}', // Display elapsed time
+                  'Distance: ${(_distanceTraveled).toStringAsFixed(2)} mi\n'
+                  'Time: ${Duration(seconds: _elapsedSeconds).toString().split('.').first}',
                 ),
               ),
             ),
@@ -666,9 +615,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               ),
             ),
           Positioned(
-            bottom: 20, // Adjust bottom position as needed
-            right: 0, // Align the buttons to the right
-            left: 0, // Align the buttons to the left
+            bottom: 20,
+            right: 0,
+            left: 0,
             child: Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -682,11 +631,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Add spacing between buttons if needed
                   FloatingActionButton(
                     onPressed: _togglePause,
                     backgroundColor: Colors.orange,
-                    // Set the background color to orange
                     child: Icon(
                       _paused ? Icons.restart_alt : Icons.pause,
                     ),
@@ -694,7 +641,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                 ],
               ),
             ),
-
           ),
           Positioned(
             top: 80,
@@ -707,7 +653,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             ) : SizedBox(),
           ),
         ],
-
       ),
     );
   }

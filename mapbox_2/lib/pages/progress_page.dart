@@ -6,7 +6,6 @@ import 'package:mapbox_2/customAppBar.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:intl/intl.dart';
 
-
 class FourthPage extends StatefulWidget {
   @override
   _FourthPageState createState() => _FourthPageState();
@@ -15,10 +14,8 @@ class FourthPage extends StatefulWidget {
 class _FourthPageState extends State<FourthPage> {
   CustomBoxDecoration customBox = CustomBoxDecoration();
   List<ChartData> chartData = [];
-  double avg_miles = 0.0;
-  double avg_speed = 0.0;
-  int weekday_num = 0;
-  String tStamp = "";
+  double avg_miles = 0.0;  // Ensuring it's initialized to 0.0
+  double avg_speed = 0.0;  // Ensuring it's initialized to 0.0, to prevent null issues
 
   @override
   void initState() {
@@ -26,115 +23,110 @@ class _FourthPageState extends State<FourthPage> {
     _fetchBikingActivity();
   }
 
-  void _showInfoDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Personal Progress"),
-          content: Text(
-            "This page displays biking activity over the past week."
-                "It shows the distance traveled in each biking session."
-                "You can use this information to track your progress over time.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Got It"),
-            ),
-          ],
-        );
-      },
-    );
-  }
   Future<void> _fetchBikingActivity() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       String userId = user.uid;
+      DateTime now = DateTime.now();
+      DateTime sevenDaysAgo = now.subtract(Duration(days: 6)); // Including today
 
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('biking_sessions')
+          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
           .orderBy('timestamp', descending: true)
           .get();
 
-      DateTime d = DateTime.now();
-      int currentDay = GetWeekDayAsInteger().convertTimeStamp(d);
-      int checkCurrentDay = GetWeekDayAsInteger().convertTimeStamp(d);
+      Map<String, double> dailyDistances = {};
+      Map<String, int> counts = {};
 
-      List<ChartData> data = [];
-      int numOfSpeedDocs = 0;
-      double avg_m = 0.0;
-      double avg_s = 0.0;
-      int weekday_n = 7;
-      String tS = "";
-      bool stop = true;
-      double average = 0.0;
-      int getRemainingDays = 0;
+      for (int i = 0; i < 7; i++) {
+        DateTime day = sevenDaysAgo.add(Duration(days: i));
+        String formattedDate = DateFormat('MM/dd').format(day);
+        dailyDistances[formattedDate] = 0.0;
+        counts[formattedDate] = 0;
+      }
+
       for (var doc in snapshot.docs) {
-        // Grab the time stamp, break it down until it is just
-        // a usable integer data value
         Timestamp t = doc['timestamp'];
-        DateTime timeStampDate = t.toDate();
-        tS = GetWeekDayAsInteger().convertTimeStamp(timeStampDate).toString();
-        int currentTimeStamp = GetWeekDayAsInteger().convertTimeStamp(timeStampDate);
-
-        if (stop && currentTimeStamp != checkCurrentDay){
-          getRemainingDays = checkCurrentDay - currentTimeStamp;
-          for (int i = 0; i < getRemainingDays; i++){
-            data.add(ChartData(checkCurrentDay, 0.0, Colors.deepOrange));
-            checkCurrentDay -= 1;
+        DateTime date = t.toDate();
+        String formattedDate = DateFormat('MM/dd').format(date);
+        if (dailyDistances.containsKey(formattedDate)) {
+          // Explicitly cast the data to Map<String, dynamic>
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          double distance = 0.0; // Initialize distance
+          if (data.containsKey('distance_traveled') && data['distance_traveled'] != null) {
+            distance = data['distance_traveled'].toDouble();
           }
-          weekday_n = weekday_n - (currentDay - checkCurrentDay);
-          stop = false;
-        }
-
-        // store the accumulated data into a new ChartData element
-        if(currentTimeStamp != checkCurrentDay){
-          data.add(ChartData(checkCurrentDay, avg_m, Colors.deepOrange));
-          checkCurrentDay -= 1;
-          avg_m = 0.0;
-          weekday_n -= 1;
-
-          // leave the loop when you reach the 7th day from today
-          if (weekday_n == 0){
-            break;
+          if (dailyDistances.containsKey(formattedDate)) {
+            if (dailyDistances[formattedDate] == null) {
+              dailyDistances[formattedDate] = 0.0; // Initialize to zero if null
+            }
+            dailyDistances[formattedDate] = dailyDistances[formattedDate]! + distance; // Safely add distance
           }
-        }
 
+          if (counts.containsKey(formattedDate)) {
+            if (counts[formattedDate] == null) {
+              counts[formattedDate] = 0; // Initialize to zero if null
+            }
+            counts[formattedDate] = counts[formattedDate]! + 1; // Safely increment
+          }
 
-        // grab average speed from the past 7 sessions
-        // and get the total average from all avg speeds.
-        double getSpeed = doc['average_speed'];
-        String conSpeed = getSpeed.toStringAsFixed(1);
-        double avgSpeed = double.parse(conSpeed);
-        avg_s += avgSpeed;
-
-        if (currentTimeStamp == checkCurrentDay) { // 13th == 13th
-          // grab distance traveled, make double fixed to
-          // 2 decimal places and then parse back to double
-          double getDist = doc['distance_traveled'];
-          String conDist = getDist.toStringAsFixed(2);
-          double dist = double.parse(conDist);
-          avg_m += dist;
         }
       }
 
-      average = avg_s / 7.0;
-      String convertAverage = average.toStringAsFixed(1);
-      average = double.parse(convertAverage);
+      double totalDistance = 0.0;
+      int daysWithData = 0;
+      for (double distance in dailyDistances.values) {
+        totalDistance += distance;
+      }
+      for (int count in counts.values) {
+        if (count > 0) {
+          daysWithData++;
+        }
+      }
+
+      List<ChartData> localChartData = [];
+      for (var entry in dailyDistances.entries) {
+        localChartData.add(ChartData(entry.key, entry.value, Colors.deepOrange));
+      }
 
       setState(() {
-        chartData = data.reversed.toList(); // Reverse the list for correct order
-        avg_miles = avg_m; // get the average miles biked for the last 7 sessions
-        avg_speed = average; // get the average spd for the last 7 sessions, get overall avg
-        tStamp = tS;
+        chartData = localChartData;
+
+        // Using if-else for avg_miles calculation
+        if (daysWithData > 0) {
+          avg_miles = totalDistance / daysWithData;
+        } else {
+          avg_miles = 0.0;
+        }
+
+        double totalSpeed = 0.0;
+        int countSpeeds = 0;
+        for (var doc in snapshot.docs) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          if (data.containsKey('average_speed') && data['average_speed'] != null) {
+            totalSpeed += data['average_speed'].toDouble();
+            countSpeeds++;
+          }
+        }
+
+        // Using if-else for avg_speed calculation
+        if (countSpeeds > 0) {
+          avg_speed = totalSpeed / countSpeeds;
+        } else {
+          avg_speed = 0.0;
+        }
       });
+
     }
   }
+
+
+
+
+
 
 
   @override
@@ -151,23 +143,18 @@ class _FourthPageState extends State<FourthPage> {
                   margin: const EdgeInsets.all(10.0),
                   decoration: customBox.boxWidgetDecoration(),
                   child: SfCartesianChart(
-                    primaryXAxis: const NumericAxis(
+                    primaryXAxis: const CategoryAxis(
                       title: AxisTitle(
-                          text: 'Miles Per Day',
-                          textStyle: TextStyle(
-                              fontWeight: FontWeight.bold
-                          )),
+                          text: 'Date',
+                          textStyle: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                     primaryYAxis: const NumericAxis(
                       title: AxisTitle(
                           text: 'Miles Biked',
-                          textStyle: TextStyle(
-                              color: Colors.deepOrange,
-                              fontWeight: FontWeight.bold
-                          )),
+                          textStyle: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold)),
                     ),
                     series: <CartesianSeries>[
-                      ColumnSeries<ChartData, int>(
+                      ColumnSeries<ChartData, String>(
                         dataSource: chartData,
                         xValueMapper: (ChartData data, _) => data.x,
                         yValueMapper: (ChartData data, _) => data.y,
@@ -178,10 +165,10 @@ class _FourthPageState extends State<FourthPage> {
                 ),
                 Container(
                   width: 290,
-                  height: 290,
+                  height: 50,
                   margin: const EdgeInsets.all(10.0),
                   decoration: customBox.boxWidgetDecoration(),
-                  child: Text("Your average miles in the last 7 days was $avg_miles and day is $tStamp"),
+                  child: Text("Your average miles in the last 7 days was ${avg_miles.toStringAsFixed(2)} and average speed was ${avg_speed.toStringAsFixed(0)} MPH"),
                 ),
                 Container(
                   width: 290,
@@ -192,15 +179,12 @@ class _FourthPageState extends State<FourthPage> {
                     enableLoadingAnimation: true,
                     animationDuration: 4500,
                     title: const GaugeTitle(
-                        text: 'Avg MPH per latest days',
-                        textStyle: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black
-                        )
-                    ),
+                        text: 'Average Speed (MPH)',
+                        textStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
                     axes: <RadialAxis>[
                       RadialAxis(
+                        minimum: 0,
+                        maximum: 30,
                         pointers: <GaugePointer>[
                           NeedlePointer(
                             value: avg_speed,
@@ -209,20 +193,15 @@ class _FourthPageState extends State<FourthPage> {
                             knobStyle: const KnobStyle(
                                 knobRadius: 10,
                                 sizeUnit: GaugeSizeUnit.logicalPixel,
-                                color: Colors.deepOrange
-                            ),
+                                color: Colors.deepOrange),
                           )
                         ],
                         annotations: <GaugeAnnotation>[
                           GaugeAnnotation(
                             angle: 90,
                             positionFactor: 0.5,
-                            widget: Text("$avg_speed MPH",
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.deepOrange,
-                                    fontSize: 20
-                                )),
+                            widget: Text("${avg_speed.toStringAsFixed(0)} MPH",
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange, fontSize: 20)),
                           )
                         ],
                       )
@@ -238,37 +217,16 @@ class _FourthPageState extends State<FourthPage> {
 
 class ChartData {
   ChartData(this.x, this.y, this.color);
-  final int x;
+  final String x;
   final double y;
   final Color? color;
 }
 
-class GetWeekDayAsInteger{
-  GetWeekDayAsInteger();
-
-  int convertTimeStamp(theDate){
-    String convertDateToString = theDate.toString();
-    convertDateToString = DateFormat.yMMMd().add_jms().format(theDate).toString();
-
-    // grab the time stamp string and grab the current day number
-    List<String> timeToList = convertDateToString.split(", ");
-    String getFirstIndex = timeToList[0];
-    List<String> getDay = getFirstIndex.split(" ");
-    String getDayNumber = getDay[1];
-    int parseDate = int.parse(getDayNumber);
-    return parseDate;
-  }
-}
-
 class CustomBoxDecoration {
-  BoxDecoration boxWidgetDecoration(){
+  BoxDecoration boxWidgetDecoration() {
     return BoxDecoration(
         color: Colors.grey[100],
-        border: Border.all(
-            width: 6,
-            color: Colors.grey[100]!
-        ),
-        borderRadius: BorderRadius.circular(12)
-    );
+        border: Border.all(width: 6, color: Colors.grey[100]!),
+        borderRadius: BorderRadius.circular(12));
   }
 }
