@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,6 +18,9 @@ class MyData {
   MyData(this._pid, this._lat, this._lng);
 
   dynamic get pid => _pid; // Getter for pid
+  dynamic get lat => _lat; // Getter for lat
+  dynamic get lng => _lng; // Getter for lng
+
 
   @override
   String toString() {
@@ -147,6 +148,10 @@ class _SecondPageState extends State<SecondPage> {
                 itemBuilder: (context, index) {
                   final MyData data = dataList[index] as MyData;
                   final String pid = data.pid;
+                  final String lat = data._lat.toString(); // Convert to string
+                  final String lng = data._lng.toString(); // Convert to string
+                  final String textAreaId = '${getTitleText()}_$index'; // Unique textAreaId
+
                   return Column(
                     children: [
                       ListTile(
@@ -164,7 +169,13 @@ class _SecondPageState extends State<SecondPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      VoteWidget(textAreaId: pid), // Pass pid as the unique identifier
+                      VoteWidget(textAreaId: textAreaId), // Pass unique textAreaId
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context, {'latitude': lat, 'longitude': lng});
+                        },
+                        child: Text('Show Location'),
+                      ),
                     ],
                   );
                 },
@@ -327,7 +338,4 @@ class _VoteWidgetState extends State<VoteWidget> {
       ],
     );
   }
-
-
 }
-
