@@ -64,5 +64,7 @@ flutter:
     - assets/repairstations.json
     - assets/servicestation.png
     - assets/waterenergy.png
+    - assets/customer.png
+    - assets/customer2.png
 
 

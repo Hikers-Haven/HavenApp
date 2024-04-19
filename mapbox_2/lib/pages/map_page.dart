@@ -1,668 +1,3 @@
-// import 'dart:collection';
-// import 'package:flutter/material.dart';
-// import 'package:google_maps_flutter/google_maps_flutter.dart';
-// import 'package:geolocator/geolocator.dart';
-// import 'dart:async';
-// import 'dart:convert';
-// import 'package:flutter/services.dart' show rootBundle, SystemChannels;
-// import 'package:flutter_compass/flutter_compass.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-//
-// class MapPage extends StatefulWidget {
-//   const MapPage({super.key});
-//
-//   @override
-//   _MapPageState createState() => _MapPageState();
-// }
-//
-// class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
-//   Completer<GoogleMapController> _controller = Completer();
-//   final Set<Polyline> _polylines = {};
-//   final Set<Marker> _markers = {};
-//   LatLng? _currentLocation;
-//   StreamSubscription<Position>? _positionStreamSubscription;
-//   StreamSubscription<CompassEvent>? _compassSubscription;
-//   double _lastBearing = 0.0;
-//   double _currentSpeed = 0.0;
-//   bool _trackingStarted = false;
-//   bool _paused = false;
-//   double _distanceTraveled = 0.0;
-//
-//   LatLng? _lastTrackedLocation;
-//
-//   String _mapStyle = "assets/map_style.json"; // Variable to hold map style JSON
-//   Key _mapKey = UniqueKey();
-//
-//   Timer? _trackingTimer;
-//   int _elapsedSeconds = 0;
-//   DateTime? _previousPositionTime;
-//
-//   late DateTime _sessionStart;
-//   late DateTime _sessionEnd;
-//   Duration _pausedDuration = Duration.zero;
-//   late DateTime _lastPauseTime;
-//   final Queue<double> _speeds =
-//       Queue<double>();
-//
-//   double maxDistancePerSecond = 15.0;
-//
-//   double plausibleSpeedLimit = 30.0;
-//
-//   BitmapDescriptor? waterSpotIcon;
-//   BitmapDescriptor? repairStationIcon;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     WidgetsBinding.instance.addObserver(this);
-//     _initLocationService();
-//     _startCompassListener();
-//     _loadAssetsAndData();
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       _getCurrentLocation();
-//     });
-//   }
-//
-//   Future<void> _loadAssetsAndData() async {
-//     await _loadCustomIcon();
-//     await _loadMapStyle();
-//     await _loadTrailData();
-//     _loadWaterSpots();
-//     _loadRepairStations();
-//   }
-//   void _showWalkthrough() {
-//     showDialog(
-//       context: context,
-//       builder: (BuildContext context) {
-//         return SimpleDialog(
-//           title: const Text('Map Walkthrough'),
-//           children: [
-//             const Padding(
-//               padding: EdgeInsets.all(16.0),
-//               child: Text(
-//                 'Welcome to the map! Here you can see your current location, '
-//                     'track your biking sessions, view water spots and repair stations, '
-//                     'and much more. Use the play button to start tracking your biking '
-//                     'session, and the pause button to pause/resume. You can also click '
-//                     'on the GPS icon to recenter the map on your current location. '
-//                     'Enjoy your biking experience!',
-//               ),
-//             ),
-//             const SizedBox(height: 20),
-//             Center(
-//               child: ElevatedButton(
-//                 onPressed: () {
-//                   Navigator.of(context).pop(); // Close the dialog
-//                 },
-//                 child: const Text('Got It!'),
-//               ),
-//             ),
-//           ],
-//         );
-//       },
-//     );
-//   }
-//   Future<void> _loadCustomIcon() async {
-//     waterSpotIcon = await BitmapDescriptor.fromAssetImage(
-//         const ImageConfiguration(devicePixelRatio: 2.5),
-//         'assets/waterenergy.png');
-//     repairStationIcon = await BitmapDescriptor.fromAssetImage(
-//         const ImageConfiguration(devicePixelRatio: 2.5),
-//         'assets/servicestation.png');
-//   }
-//
-//
-//   Future<void> _loadMapStyle() async {
-//     _mapStyle = await rootBundle.loadString("assets/map_style.json");
-//     setState(() {});
-//   }
-//
-//   @override
-//   void dispose() {
-//     WidgetsBinding.instance.removeObserver(this);
-//     _positionStreamSubscription?.cancel();
-//     _compassSubscription?.cancel();
-//     super.dispose();
-//   }
-//
-//   @override
-//   void didChangeAppLifecycleState(AppLifecycleState state) {
-//     super.didChangeAppLifecycleState(state);
-//     if (state == AppLifecycleState.resumed) {
-//       setState(() {
-//         _controller = Completer();
-//         _getCurrentLocation();
-//         _mapKey = UniqueKey();
-//       });
-//     }
-//   }
-//
-//   Future<void> _getCurrentLocation() async {
-//     try {
-//       Position position = await Geolocator.getCurrentPosition(
-//           desiredAccuracy: LocationAccuracy.high);
-//       print('Current Location: ${position.latitude}, ${position.longitude}');
-//       _updateLocation(position);
-//     } on PermissionDeniedException {
-//       print('Location permissions are denied');
-//
-//     } on LocationServiceDisabledException {
-//       print('Location services are disabled');
-//     } catch (e) {
-//       print('Error fetching current location: $e');
-//     }
-//   }
-//
-//   void _updateLocation(Position position) {
-//     setState(() {
-//       _currentLocation = LatLng(position.latitude, position.longitude);
-//       _updateMarker(position);
-//     });
-//     _moveCameraToCurrentLocation();
-//   }
-//
-//
-//   void _initLocationService() async {
-//     try {
-//       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-//       if (!serviceEnabled) {
-//         throw 'Location services are disabled.';
-//       }
-//
-//       LocationPermission permission = await Geolocator.checkPermission();
-//       if (permission == LocationPermission.denied) {
-//         permission = await Geolocator.requestPermission();
-//         if (permission != LocationPermission.whileInUse &&
-//             permission != LocationPermission.always) {
-//           if (mounted) {
-//             await showDialog(
-//               context: context,
-//               builder: (BuildContext context) {
-//                 return AlertDialog(
-//                   title: const Text('Location Permission Required'),
-//                   content: const Text(
-//                       'This app needs location permissions to function. Please grant location permission.'),
-//                   actions: <Widget>[
-//                     TextButton(
-//                       child: const Text('OK'),
-//                       onPressed: () {
-//                         SystemChannels.platform.invokeMethod('SystemNavigator.pop');
-//                       },
-//                     ),
-//                   ],
-//                 );
-//               },
-//             );
-//           }
-//         }
-//       }
-//       var locationSettings = const LocationSettings(
-//         accuracy: LocationAccuracy.high,
-//         distanceFilter: 5,
-//       );
-//
-//       _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
-//           .listen((Position position) {
-//         if (_paused) return;
-//         if (position.accuracy > 50) return;
-//
-//         final LatLng newLocation = LatLng(position.latitude, position.longitude);
-//         if (_lastTrackedLocation != null) {
-//           final double distanceMeters = Geolocator.distanceBetween(
-//               _lastTrackedLocation!.latitude,
-//               _lastTrackedLocation!.longitude,
-//               newLocation.latitude,
-//               newLocation.longitude);
-//
-//           if (distanceMeters < 3.0) return;
-//
-//           final DateTime currentTime = DateTime.now();
-//           final int timeDifferenceInSeconds = (_previousPositionTime != null)
-//               ? currentTime.difference(_previousPositionTime!).inSeconds
-//               : 0;
-//
-//           if (distanceMeters > 15.0 * timeDifferenceInSeconds) {
-//             return;
-//           }
-//
-//           double speedInMph = position.speed * 2.23694;
-//           updateSpeed(speedInMph);
-//
-//           if (timeDifferenceInSeconds >= 2) {
-//             final double distanceMiles = distanceMeters * 0.000621371;
-//             updateDistance(distanceMiles);
-//           }
-//
-//           _previousPositionTime = currentTime;
-//           _lastTrackedLocation = newLocation;
-//         } else {
-//           _lastTrackedLocation = newLocation;
-//           _previousPositionTime = DateTime.now();
-//         }
-//
-//         if (!_controller.isCompleted) {
-//           _moveCameraToCurrentLocation();
-//         }
-//       });
-//     } catch (e) {
-//       print('Error initializing location service: $e');
-//     }
-//   }
-//
-//
-//   void updateDistance(double newDistance) {
-//     _distanceTraveled += newDistance;
-//     setState(() {});
-//   }
-//
-//   void updateSpeed(double newSpeed) {
-//     if (newSpeed <= plausibleSpeedLimit) {
-//       if (_speeds.length >= 100) {
-//         _speeds.removeFirst();
-//       }
-//       _speeds.add(newSpeed);
-//     }
-//
-//
-//     setState(() {
-//       _currentSpeed = newSpeed;
-//     });
-//   }
-//
-//   void _moveCameraToCurrentLocation() async {
-//     if (!_controller.isCompleted || _trackingStarted) return;
-//     final GoogleMapController controller = await _controller.future;
-//     if (_currentLocation != null) {
-//       controller.animateCamera(CameraUpdate.newLatLngZoom(
-//           _currentLocation!, 15));
-//     }
-//   }
-//
-//   Future<void> _loadTrailData() async {
-//     try {
-//       final String geoJsonString =
-//           await rootBundle.loadString('assets/geodata.json');
-//       final data = json.decode(geoJsonString);
-//
-//       _polylines.clear();
-//       _markers.clear();
-//
-//       print("Total features found: ${data['features'].length}");
-//
-//       for (var feature in data['features']) {
-//         if (feature['geometry']['type'] == "LineString") {
-//           List<LatLng> lineCoordinates =
-//               (feature['geometry']['coordinates'] as List)
-//                   .map((coord) => LatLng(coord[1], coord[0]))
-//                   .toList();
-//
-//           print("Adding polyline: ${feature['properties']['name']} with points: ${lineCoordinates.length}");
-//
-//           _polylines.add(Polyline(
-//             polylineId: PolylineId(feature['properties']['name']),
-//             points: lineCoordinates,
-//             color: Colors.blue,
-//             width: 3,
-//           ));
-//         }
-//       }
-//
-//       setState(() {});
-//     } catch (e) {
-//       print('Failed to load geo data: $e');
-//     }
-//   }
-//
-//   Future<void> _loadWaterSpots() async {
-//     try {
-//       final String waterStationsJsonString = await rootBundle.loadString('assets/waterspots.json');
-//       List<Map<String, dynamic>> waterStations = List<Map<String, dynamic>>.from(json.decode(waterStationsJsonString));
-//
-//       if (waterSpotIcon == null) {
-//         print("Water spot icon is not loaded");
-//         return;
-//       }
-//
-//       setState(() {
-//         for (var station in waterStations) {
-//           _markers.add(Marker(
-//             markerId: MarkerId(station['name']),
-//             position: LatLng(station['lat'], station['lng']),
-//             icon: waterSpotIcon!,
-//           ));
-//         }
-//       });
-//
-//       print("Water spots loaded with icons. Total markers: ${_markers.length}");
-//     } catch (e) {
-//       print('Failed to load water spots or icons: $e');
-//     }
-//   }
-//
-//   Future<void> _loadRepairStations() async {
-//     try {
-//       final String repairStationsJsonString = await rootBundle.loadString('assets/repairstations.json');
-//       List<Map<String, dynamic>> repairStations = List<Map<String, dynamic>>.from(json.decode(repairStationsJsonString));
-//
-//       if (repairStationIcon == null) {
-//         print("Repair station icon is not loaded");
-//         return;
-//       }
-//
-//       setState(() {
-//         for (var station in repairStations) {
-//           _markers.add(Marker(
-//             markerId: MarkerId(station['name']),
-//             position: LatLng(station['lat'], station['lng']),
-//             icon: repairStationIcon!, // Use the initially loaded icon
-//           ));
-//         }
-//       });
-//
-//       print("Repair stations loaded with icons. Total markers: ${_markers.length}");
-//     } catch (e) {
-//       print('Failed to load repair stations or icons: $e');
-//     }
-//   }
-//
-//   Future<String?> _getUserId() async {
-//     User? user = FirebaseAuth.instance.currentUser;
-//     return user?.uid;
-//   }
-//
-//   Future<BitmapDescriptor> _createMarkerImageFromAsset(String assetName) async {
-//     const ImageConfiguration imageConfiguration =
-//         ImageConfiguration(devicePixelRatio: 2.5);
-//     BitmapDescriptor bitmapDescriptor = await BitmapDescriptor.fromAssetImage(
-//       imageConfiguration,
-//       assetName,
-//     );
-//     return bitmapDescriptor;
-//   }
-//
-//   void _updateMarker(Position position) async {
-//     _markers.removeWhere((m) => m.markerId == const MarkerId("currentLocation"));
-//
-//     _markers.add(Marker(
-//       markerId: const MarkerId("currentLocation"),
-//       position: LatLng(position.latitude, position.longitude),
-//       icon: await _createMarkerImageFromAsset('assets/navicon.png'),
-//     ));
-//
-//     await _loadWaterSpots();
-//     await _loadRepairStations();
-//
-//     setState(() {});
-//   }
-//
-//
-//   void _startCompassListener() {
-//     _compassSubscription = FlutterCompass.events!.listen((CompassEvent event) {
-//       final double? direction = event.heading;
-//       if (direction != null) {
-//         setState(() {
-//           _lastBearing = direction;
-//         });
-//         if (_trackingStarted) {
-//           _updateMapBearing();
-//         }
-//       }
-//     });
-//   }
-//
-//   void _updateMapBearing() async {
-//     if (!_controller.isCompleted) return;
-//     final GoogleMapController controller = await _controller.future;
-//     controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-//       target: _currentLocation!,
-//       bearing: _lastBearing,
-//       zoom: 14.0,
-//     )));
-//   }
-//
-//   void _toggleTracking() async {
-//     setState(() {
-//       _trackingStarted = !_trackingStarted;
-//
-//       if (_trackingStarted) {
-//         _sessionStart = DateTime.now();
-//         _distanceTraveled = 0.0;
-//         _pausedDuration = Duration.zero;
-//         _speeds.clear();
-//         _lastTrackedLocation = _currentLocation;
-//         _startCompassListener();
-//         _elapsedSeconds = 0;
-//         _trackingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-//           setState(() {
-//             _elapsedSeconds++;
-//           });
-//         });
-//       } else {
-//         _sessionEnd = DateTime.now();
-//         _trackingTimer?.cancel();
-//         _compassSubscription?.cancel();
-//
-//         _paused = false;
-//       }
-//     });
-//
-//     if (!_trackingStarted) {
-//       String? userId = await _getUserId();
-//       if (userId != null) {
-//         _storeBikingActivity(userId);
-//       }
-//     }
-//   }
-//
-//
-//   void _recenterMap() async {
-//     final GoogleMapController controller = await _controller.future;
-//     if (_currentLocation != null) {
-//       controller.animateCamera(CameraUpdate.newLatLng(_currentLocation!));
-//     }
-//   }
-//
-//   void _pauseTracking() {
-//     _positionStreamSubscription?.pause();
-//     _compassSubscription?.pause();
-//     _lastPauseTime = DateTime.now();
-//     _trackingTimer?.cancel();
-//   }
-//
-//   void _resumeTracking() {
-//     _pausedDuration +=
-//         DateTime.now().difference(_lastPauseTime);
-//     _previousPositionTime =
-//         DateTime.now();
-//     _positionStreamSubscription?.resume();
-//     _compassSubscription?.resume();
-//     _trackingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-//       setState(() {
-//         _elapsedSeconds++;
-//       });
-//     });
-//   }
-//
-//   void _togglePause() {
-//     setState(() {
-//       _paused = !_paused;
-//       if (_paused) {
-//         _pauseTracking();
-//       } else {
-//         _resumeTracking();
-//       }
-//     });
-//   }
-//
-//   Future<void> updatePersonalBest(String userId, double newSpeed, double newDistance, int newDuration) async {
-//     DocumentReference personalBestDoc = FirebaseFirestore.instance
-//         .collection('users')
-//         .doc(userId)
-//         .collection('personal_best')
-//         .doc('personalbestdoc');
-//
-//     return FirebaseFirestore.instance.runTransaction((transaction) async {
-//       DocumentSnapshot snapshot = await transaction.get(personalBestDoc);
-//
-//       if (!snapshot.exists) {
-//         transaction.set(personalBestDoc, {
-//           'fastest_speed': newSpeed,
-//           'longest_distance': newDistance,
-//           'longest_duration': newDuration,
-//         });
-//         return;
-//       }
-//       Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-//
-//       double currentFastestSpeed = data['fastest_speed'] ?? 0.0;
-//       double currentLongestDistance = data['longest_distance'] ?? 0.0;
-//       int currentLongestDuration = data['longest_duration'] ?? 0;
-//
-//       Map<String, dynamic> updates = {};
-//       if (newSpeed > currentFastestSpeed) {
-//         updates['fastest_speed'] = newSpeed;
-//       }
-//       if (newDistance > currentLongestDistance) {
-//         updates['longest_distance'] = newDistance;
-//       }
-//       if (newDuration > currentLongestDuration) {
-//         updates['longest_duration'] = newDuration;
-//       }
-//
-//       if (updates.isNotEmpty) {
-//         transaction.update(personalBestDoc, updates);
-//       }
-//     });
-//   }
-//   void _storeBikingActivity(String? userId) async {
-//     if (userId != null && _lastTrackedLocation != null) {
-//       int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
-//           _pausedDuration.inSeconds;
-//
-//       double averageSpeedInMph = _speeds.isNotEmpty
-//           ? _speeds.reduce((a, b) => a + b) / _speeds.length
-//           : 0.0;
-//
-//       FirebaseFirestore.instance
-//           .collection('users')
-//           .doc(userId)
-//           .collection('biking_sessions')
-//           .add({
-//         'timestamp': DateTime.now(),
-//         'average_speed': averageSpeedInMph,
-//         'distance_traveled': _distanceTraveled,
-//         'time_elapsed': totalElapsedTime / 60,
-//       }).then((_) {
-//         print('Biking activity stored successfully');
-//       }).catchError((error) {
-//         print('Failed to store biking activity: $error');
-//       });
-//       updatePersonalBest(userId, averageSpeedInMph, _distanceTraveled, totalElapsedTime);
-//
-//     }
-//
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: Stack(
-//         children: [
-//           GoogleMap(
-//             key: _mapKey,
-//             mapType: MapType.normal,
-//             initialCameraPosition: CameraPosition(
-//               target: _currentLocation ?? LatLng(0, 0),
-//               zoom: 14.0,
-//             ),
-//             style: _mapStyle,
-//             // Apply loaded style
-//             polylines: _polylines,
-//             markers: _markers,
-//               onMapCreated: (GoogleMapController controller) {
-//                 _controller.complete(controller);
-//                 if (_currentLocation != null) {
-//                   controller.animateCamera(CameraUpdate.newLatLngZoom(_currentLocation!, 15));
-//                 }
-//               },
-//           ),
-//           if (_trackingStarted)
-//             Positioned(
-//               top: 20,
-//               right: 20,
-//               child: Container(
-//                 padding: const EdgeInsets.all(8),
-//                 decoration: BoxDecoration(
-//                   color: Colors.white,
-//                   borderRadius: BorderRadius.circular(8),
-//                 ),
-//                 child: Text(
-//                   'Speed: ${(_currentSpeed).toStringAsFixed(0)} mph\n'
-//                   'Distance: ${(_distanceTraveled).toStringAsFixed(2)} mi\n'
-//                   'Time: ${Duration(seconds: _elapsedSeconds).toString().split('.').first}',
-//                 ),
-//               ),
-//             ),
-//           if (!_trackingStarted)
-//             Positioned(
-//               top: 20,
-//               right: 20,
-//               child: FloatingActionButton(
-//                 onPressed: _recenterMap,
-//                 backgroundColor: Colors.blue,
-//                 child: const Icon(Icons.gps_fixed),
-//               ),
-//             ),
-//           Positioned(
-//             bottom: 20,
-//             right: 0,
-//             left: 0,
-//             child: Center(
-//               child: Row(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                   FloatingActionButton(
-//                     onPressed: _toggleTracking,
-//                     backgroundColor:
-//                         _trackingStarted ? Colors.red : Colors.green,
-//                     child: Icon(
-//                       _trackingStarted ? Icons.stop : Icons.play_arrow,
-//                     ),
-//                   ),
-//                   const SizedBox(width: 16),
-//                   FloatingActionButton(
-//                     onPressed: _togglePause,
-//                     backgroundColor: Colors.orange,
-//                     child: Icon(
-//                       _paused ? Icons.restart_alt : Icons.pause,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//           Positioned(
-//             top: 80,
-//             right: 20,
-//             child: !_trackingStarted
-//                 ? FloatingActionButton(
-//               onPressed: _showWalkthrough,
-//               backgroundColor: Colors.grey,
-//               child: const Icon(Icons.help_outline),
-//             ) : SizedBox(),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-
-
-
-
-// Importing necessary Flutter and Dart libraries
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -676,15 +11,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 // StatefulWidget to handle the dynamic nature of a map page where user interaction causes changes.
 class MapPage extends StatefulWidget {
-  const MapPage({super.key});
+  static final GlobalKey<_MapPageState> mapKey = GlobalKey<_MapPageState>();
+
+  MapPage({Key? key}) : super(key: mapKey);  // Ensure key initialization is correct.
 
   @override
   _MapPageState createState() => _MapPageState();
-
-  void updateMapWithLocation(double latitude, double longitude) {
-    _MapPageState()._updateMapWithLocation(latitude, longitude);
-  }
 }
+
+
 
 // State class for MapPage, includes location and map tracking functionalities.
 class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
@@ -753,6 +88,18 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       _getCurrentLocation();
     });
   }
+
+  void updateMapWithLocation(double latitude, double longitude) {
+    if (_controller.isCompleted) {
+      _controller.future.then((controller) {
+        controller.animateCamera(CameraUpdate.newLatLng(LatLng(latitude, longitude)));
+      });
+    }
+  }
+  bool trackingIsActive() {
+    return _trackingStarted && !_paused;
+  }
+
 
   Future<void> _loadAssetsAndData() async {
     // Load custom icons for water spots and repair stations.
@@ -867,13 +214,108 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   void _updateLocation(Position position) {
-    // Update the state with the new location and move the map camera.
     setState(() {
       _currentLocation = LatLng(position.latitude, position.longitude);
       _updateMarker(position);
     });
-    _moveCameraToCurrentLocation();
+    if (!_paused) {
+      _moveCameraToCurrentLocation();
+    }
   }
+
+
+  // void _initLocationService() async {
+  //   // Initialize location services and handle permissions.
+  //   try {
+  //     bool serviceEnabled = await Geolocator.isLocationServiceEnabled(); // Check if location services are enabled.
+  //     if (!serviceEnabled) {
+  //       throw 'Location services are disabled.';
+  //     }
+  //
+  //     LocationPermission permission = await Geolocator.checkPermission(); // Check the current location permission.
+  //     if (permission == LocationPermission.denied) {
+  //       permission = await Geolocator.requestPermission();
+  //       if (permission != LocationPermission.whileInUse && permission != LocationPermission.always) {
+  //         if (mounted) { // Check if the widget is still mounted before showing a dialog. (mounted means it's still active)
+  //           await showDialog(
+  //             context: context,
+  //             builder: (BuildContext context) {
+  //               return AlertDialog(
+  //                 title: const Text('Location Permission Required'),
+  //                 content: const Text(
+  //                     'This app needs location permissions to function. Please grant location permission.'),
+  //                 actions: <Widget>[
+  //                   TextButton(
+  //                     child: const Text('OK'),
+  //                     onPressed: () {
+  //                       SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+  //                     },
+  //                   ),
+  //                 ],
+  //               );
+  //             },
+  //           );
+  //         }
+  //       }
+  //     }
+  //     var locationSettings = const LocationSettings(
+  //       accuracy: LocationAccuracy.high,
+  //       distanceFilter: 5,
+  //     );
+  //
+  //     // Subscribe to position updates based on the specified location settings. Meaning, the app will receive updates when the user moves.
+  //     _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
+  //         .listen((Position position) {
+  //       if (_paused) return;  // Do not update if tracking is paused.
+  //       if (position.accuracy > 50) return;  // Skip updates with low accuracy. (Avoids noise)
+  //
+  //       final LatLng newLocation = LatLng(position.latitude, position.longitude); // Convert the new position to a LatLng object.
+  //       // Calculate the distance moved since the last update.
+  //       if (_lastTrackedLocation != null) { // If there was a previous location. (Not the first update)
+  //         final double distanceMeters = Geolocator.distanceBetween( // Calculate the distance between the last and new locations.
+  //             _lastTrackedLocation!.latitude,
+  //             _lastTrackedLocation!.longitude,
+  //             newLocation.latitude,
+  //             newLocation.longitude);
+  //
+  //         if (distanceMeters < 3.0) return;  // Ignore minor movements. (Less than 3 meters to avoid noise)
+  //
+  //         final DateTime currentTime = DateTime.now(); // Get the current time.
+  //         int timeDifferenceInSeconds;
+  //         if (_previousPositionTime != null) { // Calculate the time difference between the current and previous updates.
+  //           timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
+  //         } else {
+  //           timeDifferenceInSeconds = 0;
+  //         }
+  //
+  //
+  //         if (distanceMeters > 15.0 * timeDifferenceInSeconds) { // Check if the distance moved is plausible and not too large. (15 meters per second is the limit)
+  //           return;  // Ignore improbable large distances in a short time.
+  //         }
+  //
+  //         double speedInMph = position.speed * 2.23694;  // Convert speed to miles per hour.
+  //         updateSpeed(speedInMph);
+  //
+  //         if (timeDifferenceInSeconds >= 2) { // Update the distance traveled if at least 2 seconds have passed.
+  //           final double distanceMiles = distanceMeters * 0.000621371;
+  //           updateDistance(distanceMiles);
+  //         }
+  //
+  //         _previousPositionTime = currentTime; // Update the previous time and location for the next iteration.
+  //         _lastTrackedLocation = newLocation; // Update the last tracked location.
+  //       } else {
+  //         _lastTrackedLocation = newLocation; // Set the last tracked location to the new location if it's the first update.
+  //         _previousPositionTime = DateTime.now(); // Set the previous time to the current time.
+  //       }
+  //
+  //       if (!_controller.isCompleted) { // Move the map camera to the current location if the map is ready.
+  //         _moveCameraToCurrentLocation(); // Move the camera to the current location.
+  //       }
+  //     });
+  //   } catch (e) {
+  //     print('Error initializing location service: $e');
+  //   }
+  // }
 
   void _initLocationService() async {
     // Initialize location services and handle permissions.
@@ -887,7 +329,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission != LocationPermission.whileInUse && permission != LocationPermission.always) {
-          if (mounted) { // Check if the widget is still mounted before showing a dialog. (mounted means it's still active)
+          if (mounted) {
             await showDialog(
               context: context,
               builder: (BuildContext context) {
@@ -914,63 +356,46 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         distanceFilter: 5,
       );
 
-      // Subscribe to position updates based on the specified location settings. Meaning, the app will receive updates when the user moves.
       _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
           .listen((Position position) {
-        if (_paused) return;  // Do not update if tracking is paused.
-        if (position.accuracy > 50) return;  // Skip updates with low accuracy. (Avoids noise)
+        if (_paused) return; // Do not process updates if tracking is paused.
 
-        final LatLng newLocation = LatLng(position.latitude, position.longitude); // Convert the new position to a LatLng object.
-        // Calculate the distance moved since the last update.
-        if (_lastTrackedLocation != null) { // If there was a previous location. (Not the first update)
-          final double distanceMeters = Geolocator.distanceBetween( // Calculate the distance between the last and new locations.
-              _lastTrackedLocation!.latitude,
-              _lastTrackedLocation!.longitude,
-              newLocation.latitude,
-              newLocation.longitude);
+        final LatLng newLocation = LatLng(position.latitude, position.longitude);
+        final DateTime currentTime = DateTime.now();
+        int timeDifferenceInSeconds = _previousPositionTime != null ? currentTime.difference(_previousPositionTime!).inSeconds : 0;
 
-          if (distanceMeters < 3.0) return;  // Ignore minor movements. (Less than 3 meters to avoid noise)
+        double distanceMeters = Geolocator.distanceBetween(
+            _lastTrackedLocation?.latitude ?? 0,
+            _lastTrackedLocation?.longitude ?? 0,
+            newLocation.latitude,
+            newLocation.longitude);
 
-          final DateTime currentTime = DateTime.now(); // Get the current time.
-          // final int timeDifferenceInSeconds = (_previousPositionTime != null)
-          //     ? currentTime.difference(_previousPositionTime!).inSeconds
-          //     : 0;
-
-          int timeDifferenceInSeconds;
-          if (_previousPositionTime != null) { // Calculate the time difference between the current and previous updates.
-            timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
-          } else {
-            timeDifferenceInSeconds = 0;
-          }
-
-
-          if (distanceMeters > 15.0 * timeDifferenceInSeconds) { // Check if the distance moved is plausible and not too large. (15 meters per second is the limit)
-            return;  // Ignore improbable large distances in a short time.
-          }
-
-          double speedInMph = position.speed * 2.23694;  // Convert speed to miles per hour.
-          updateSpeed(speedInMph);
-
-          if (timeDifferenceInSeconds >= 2) { // Update the distance traveled if at least 2 seconds have passed.
-            final double distanceMiles = distanceMeters * 0.000621371;
-            updateDistance(distanceMiles);
-          }
-
-          _previousPositionTime = currentTime; // Update the previous time and location for the next iteration.
-          _lastTrackedLocation = newLocation; // Update the last tracked location.
-        } else {
-          _lastTrackedLocation = newLocation; // Set the last tracked location to the new location if it's the first update.
-          _previousPositionTime = DateTime.now(); // Set the previous time to the current time.
+        if (distanceMeters > 15.0 * timeDifferenceInSeconds) { // Ignore large implausible moves.
+          return;
         }
 
-        if (!_controller.isCompleted) { // Move the map camera to the current location if the map is ready.
-          _moveCameraToCurrentLocation(); // Move the camera to the current location.
+        if (timeDifferenceInSeconds >= 2) {
+          double distanceMiles = distanceMeters * 0.000621371;
+          updateDistance(distanceMiles);
+        }
+
+        double speedInMph = position.speed * 2.23694; // Convert speed to mph.
+        updateSpeed(speedInMph);
+
+        _previousPositionTime = currentTime;
+        _lastTrackedLocation = newLocation;
+
+        _updateLocation(position); // Update the current location and UI but not necessarily the camera position.
+
+        if (!_paused && _controller.isCompleted) { // Only auto-center if not paused and controller is ready.
+          _moveCameraToCurrentLocation();
         }
       });
     } catch (e) {
       print('Error initializing location service: $e');
     }
   }
+
 
   void updateDistance(double newDistance) {
     // Increment the distance traveled by the new distance calculated.
@@ -994,15 +419,28 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     });
   }
 
+  // void _moveCameraToCurrentLocation() async {
+  //   // Move the map camera to the current location if the map is ready.
+  //   if (!_controller.isCompleted || _trackingStarted) return; // Do not move the camera if tracking is active.
+  //   final GoogleMapController controller = await _controller.future; // Get the map controller.
+  //   if (_currentLocation != null) { // Check if the current location is available.
+  //     controller.animateCamera(CameraUpdate.newLatLngZoom( // Move the camera to the current location.
+  //         _currentLocation!, 15));
+  //   }
+  // }
+
   void _moveCameraToCurrentLocation() async {
-    // Move the map camera to the current location if the map is ready.
-    if (!_controller.isCompleted || _trackingStarted) return; // Do not move the camera if tracking is active.
-    final GoogleMapController controller = await _controller.future; // Get the map controller.
-    if (_currentLocation != null) { // Check if the current location is available.
-      controller.animateCamera(CameraUpdate.newLatLngZoom( // Move the camera to the current location.
+    // Only move the camera if the controller is ready and neither tracking is active nor paused.
+    if (!_controller.isCompleted || _paused || _trackingStarted) return;
+
+    final GoogleMapController controller = await _controller.future;
+    if (_currentLocation != null) {
+      controller.animateCamera(CameraUpdate.newLatLngZoom(
           _currentLocation!, 15));
     }
   }
+
+
 
   Future<void> _loadTrailData() async {
     // Load geographical data for trails from assets.
@@ -1015,24 +453,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       _markers.clear();  // Clear the existing markers.
 
       print("Total features found: ${data['features'].length}");
-
-      // for (var feature in data['features']) { // Iterate over each feature in the data.
-      //   if (feature['geometry']['type'] == "LineString") {
-      //     List<LatLng> lineCoordinates =
-      //     (feature['geometry']['coordinates'] as List)
-      //         .map((coord) => LatLng(coord[1], coord[0]))
-      //         .toList();
-      //
-      //     print("Adding polyline: ${feature['properties']['name']} with points: ${lineCoordinates.length}");
-      //
-      //     _polylines.add(Polyline( // Add a new polyline to the set of polylines. This represents a trail on the map.
-      //       polylineId: PolylineId(feature['properties']['name']),
-      //       points: lineCoordinates,
-      //       color: Colors.blue,
-      //       width: 3,
-      //     ));
-      //   }
-      // }
 
       for (var feature in data['features']) { // Iterate over each feature in the data.
         if (feature['geometry']['type'] == "LineString") {
@@ -1064,32 +484,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     }
   }
 
-  // Future<void> _loadWaterSpots() async {
-  //   // Load data for water spot locations to place markers on the map.
-  //   try {
-  //     final String waterStationsJsonString = await rootBundle.loadString('assets/waterspots.json');
-  //     List<Map<String, dynamic>> waterStations = List<Map<String, dynamic>>.from(json.decode(waterStationsJsonString));
-  //
-  //     if (waterSpotIcon == null) {
-  //       print("Water spot icon is not loaded");
-  //       return;
-  //     }
-  //
-  //     setState(() { // Update the state to reflect the new markers.
-  //       for (var station in waterStations) {
-  //         _markers.add(Marker(
-  //           markerId: MarkerId(station['name']),
-  //           position: LatLng(station['lat'], station['lng']),
-  //           icon: waterSpotIcon!,  // Use the custom loaded icon for water spots.
-  //         ));
-  //       }
-  //     });
-  //
-  //     print("Water spots loaded with icons. Total markers: ${_markers.length}");
-  //   } catch (e) {
-  //     print('Failed to load water spots or icons: $e');
-  //   }
-  // }
+
 
   Future<void> _loadWaterSpots() async {
     // Attempt to load water spot data from a JSON file.
@@ -1125,33 +520,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
 
-  // Future<void> _loadRepairStations() async {
-  //   // Load data for bicycle repair stations/shops to add markers on the map.
-  //   try {
-  //     final String repairStationsJsonString = await rootBundle.loadString('assets/repairstations.json'); // Load the repair stations data.
-  //     List<Map<String, dynamic>> repairStations = List<Map<String, dynamic>>.from(json.decode(repairStationsJsonString));
-  //     // Decode the JSON data into a list of maps of dynamic data.
-  //
-  //     if (repairStationIcon == null) { // Check if the repair station icon is loaded.
-  //       print("Repair station icon is not loaded");
-  //       return;
-  //     }
-  //
-  //     setState(() { // Update the state to reflect the new markers.
-  //       for (var station in repairStations) {
-  //         _markers.add(Marker(
-  //           markerId: MarkerId(station['name']),
-  //           position: LatLng(station['lat'], station['lng']),
-  //           icon: repairStationIcon!,  // Use the custom loaded icon for repair stations.
-  //         ));
-  //       }
-  //     });
-  //
-  //     print("Repair stations loaded with icons. Total markers: ${_markers.length}");
-  //   } catch (e) {
-  //     print('Failed to load repair stations or icons: $e');
-  //   }
-  // }
 
   Future<void> _loadRepairStations() async {
     // Attempt to load repair station data from a JSON file.
@@ -1203,24 +571,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     return bitmapDescriptor;
   }
 
-  // void _updateMarker(Position position) async {
-  //   // Update the location marker on the map to reflect the current position.
-  //   _markers.removeWhere((m) => m.markerId == const MarkerId("currentLocation"));
-  //
-  //   _markers.add(Marker(
-  //     markerId: const MarkerId("currentLocation"),
-  //     position: LatLng(position.latitude, position.longitude),
-  //     icon: await _createMarkerImageFromAsset('assets/navicon.png'),  // Custom navigation icon.
-  //   ));
-  //
-  //   // Reload data for water spots and repair stations to ensure they are current.
-  //   await _loadWaterSpots(); //water spots are loaded and icons are updated
-  //   await _loadRepairStations(); //repair stations are loaded and icons are updated
-  //
-  //   // Update the UI to reflect the new marker positions.
-  //   setState(() {});
-  // }
-
   void _updateMarker(Position position) async {
     // Update the location marker on the map to reflect the current position.
     for (int i = 0; i < _markers.length; i++) {
@@ -1263,15 +613,17 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   void _updateMapBearing() async {
-    // Rotate the map to align with the current bearing.
-    if (!_controller.isCompleted) return; // Do not update if the map controller is not ready (i.e. map is not loaded).
-    final GoogleMapController controller = await _controller.future;  // Get the map controller (i.e. the map).
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition( // Animate the camera to the new position.
+    // Rotate the map to align with the current bearing only if tracking is active and not paused.
+    if (!_controller.isCompleted || _paused || !_trackingStarted) return; // Do not update if the map controller is not ready or tracking is paused.
+
+    final GoogleMapController controller = await _controller.future;  // Get the map controller.
+    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
       target: _currentLocation!, // Move the camera to the current location.
       bearing: _lastBearing, // Rotate the camera to align with the current bearing.
       zoom: 14.0,
     )));
   }
+
 
   void _toggleTracking() async {
     // Start or stop tracking the user's movement.
@@ -1279,6 +631,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       _trackingStarted = !_trackingStarted; // Toggle the tracking state.
 
       if (_trackingStarted) {
+        _paused = false;  // Reset the pause state.
         // Start a new tracking session.
         _sessionStart = DateTime.now();
         _distanceTraveled = 0.0;
@@ -1346,12 +699,20 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   void _togglePause() {
     // Toggle the paused state of tracking.
     setState(() {
-      _paused = !_paused;
-      if (_paused) {
-        _pauseTracking();
-      } else {
-        _resumeTracking();
+      if(_trackingStarted) { // Only pause if tracking is active (not stopped).
+        _paused = !_paused; // Toggle the paused state.
+        if (_paused) {
+          _pauseTracking(); // Pause tracking if it was not paused.
+        } else {
+          _resumeTracking(); // Resume tracking if it was paused.
+        }
       }
+      // _paused = !_paused;
+      // if (_paused) {
+      //   _pauseTracking();
+      // } else {
+      //   _resumeTracking();
+      // }
     });
   }
 
@@ -1402,10 +763,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     if (userId != null && _lastTrackedLocation != null) {
       int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
           _pausedDuration.inSeconds;
-
-      // double averageSpeedInMph = _speeds.isNotEmpty
-      //     ? _speeds.reduce((a, b) => a + b) / _speeds.length
-      //     : 0.0;
 
       double averageSpeedInMph;
       if (_speeds.isNotEmpty) {
@@ -1481,11 +838,20 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               ),
             ),
           if (!_trackingStarted)
+            // Positioned(
+            //   top: 20,
+            //   right: 20,
+            //   child: FloatingActionButton(
+            //     onPressed: _recenterMap,
+            //     backgroundColor: Colors.blue,
+            //     child: const Icon(Icons.gps_fixed),
+            //   ),
+            // ),
             Positioned(
               top: 20,
               right: 20,
               child: FloatingActionButton(
-                onPressed: _recenterMap,
+                onPressed: _moveCameraToCurrentLocation,  // This triggers moving the camera.
                 backgroundColor: Colors.blue,
                 child: const Icon(Icons.gps_fixed),
               ),

@@ -60,7 +60,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Center(
                     child: CircleAvatar(
                       radius: 50,
-                      backgroundImage: AssetImage('assets/peepoGamer.png'),
+                      backgroundColor: Colors.orange[300],  // Background color for the circle
+                      child: Icon(
+                        Icons.person,  // Material Icon for person
+                        size: 80,
+                        color: Colors.grey[800],  // Icon color
+                      ),
                     ),
                   ),
                 ),
@@ -79,19 +84,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     if (result != null && result.containsKey('latitude') && result.containsKey('longitude')) {
                       double latitude = double.parse(result['latitude']);
                       double longitude = double.parse(result['longitude']);
-                      // Call the function to update the map with the provided location
-                      MapPage mapPage = MapPage(); // Create an instance of MapPage
-                      mapPage.updateMapWithLocation(latitude, longitude);
+
+                      // Access the state of MapPage using the GlobalKey
+                      if (!MapPage.mapKey.currentState!.trackingIsActive()) {
+                        MapPage.mapKey.currentState!.updateMapWithLocation(latitude, longitude);
+                      }
                     }
                   },
+
+
                 ),
-                // ListTile(
-                //   leading: Icon(Icons.forum),
-                //   title: Text('Community', style: TextStyle(fontSize: 20)),
-                //   onTap: () {
-                //     Navigator.of(context).push(MaterialPageRoute(builder: (context) => ThirdPage()));
-                //   },
-                // ),
                 ListTile(
                   leading: Icon(Icons.bar_chart),
                   title: Text('Personal Progress', style: TextStyle(fontSize: 20)),
