@@ -37,7 +37,13 @@ class _SecondPageState extends State<SecondPage> {
   @override
   void initState() {
     super.initState();
-    fetchData("Water Stations"); // Fetch data for the first category
+    // Fetch water stations data when the page loads
+    fetchData("Water Stations").then((_) {
+      // Set selectedTab to 1 after fetching data
+      setState(() {
+        selectedTab = 1;
+      });
+    });
   }
 
   Future<void> fetchData(String category) async {
