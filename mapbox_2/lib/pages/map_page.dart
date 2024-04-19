@@ -436,7 +436,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     final GoogleMapController controller = await _controller.future;
     if (_currentLocation != null) {
       controller.animateCamera(CameraUpdate.newLatLngZoom(
-          _currentLocation!, 15));
+          _currentLocation!, 14));
     }
   }
 
@@ -620,7 +620,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
       target: _currentLocation!, // Move the camera to the current location.
       bearing: _lastBearing, // Rotate the camera to align with the current bearing.
-      zoom: 14.0,
+      zoom: 16.0,
     )));
   }
 
@@ -816,7 +816,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             onMapCreated: (GoogleMapController controller) {
               _controller.complete(controller);
               if (_currentLocation != null) {
-                controller.animateCamera(CameraUpdate.newLatLngZoom(_currentLocation!, 15));
+                controller.animateCamera(CameraUpdate.newLatLngZoom(_currentLocation!, 16));
               }
             },
           ),
