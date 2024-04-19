@@ -74,8 +74,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 ListTile(
                   leading: Icon(Icons.tire_repair),
                   title: Text('Points of Interest', style: TextStyle(fontSize: 20)),
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => SecondPage()));
+                  onTap: () async {
+                    final result = await Navigator.of(context).push(MaterialPageRoute(builder: (context) => SecondPage()));
+                    if (result != null && result.containsKey('latitude') && result.containsKey('longitude')) {
+                      double latitude = double.parse(result['latitude']);
+                      double longitude = double.parse(result['longitude']);
+                      // Call the function to update the map with the provided location
+                      MapPage mapPage = MapPage(); // Create an instance of MapPage
+                      mapPage.updateMapWithLocation(latitude, longitude);
+                    }
                   },
                 ),
                 // ListTile(

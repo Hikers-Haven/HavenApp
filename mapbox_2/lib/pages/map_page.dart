@@ -680,6 +680,10 @@ class MapPage extends StatefulWidget {
 
   @override
   _MapPageState createState() => _MapPageState();
+
+  void updateMapWithLocation(double latitude, double longitude) {
+    _MapPageState()._updateMapWithLocation(latitude, longitude);
+  }
 }
 
 // State class for MapPage, includes location and map tracking functionalities.
@@ -850,6 +854,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       print('Location services are disabled');
     } catch (e) {
       print('Error fetching current location: $e');
+    }
+  }
+
+  void _updateMapWithLocation(double latitude, double longitude) {
+    // Update the map with the new location
+    if (_controller.isCompleted) {
+      _controller.future.then((controller) {
+        controller.animateCamera(CameraUpdate.newLatLng(LatLng(latitude, longitude)));
+      });
     }
   }
 
