@@ -179,9 +179,7 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text.trim(),
       );
     } catch (error) {
-      setState(() {
-        _errorMessage = error.toString();
-      });
+      handleError(error);
     } finally {
       setState(() {
         _loading = false;
@@ -189,6 +187,25 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void handleError(dynamic error) {
+    setState(() {
+      if (error is FirebaseAuthException) {
+        switch (error.code) {
+          case 'invalid-email':
+            _errorMessage = 'Invalid email format.';
+            break;
+          case 'wrong-password':
+            _errorMessage = 'Invalid password.';
+            break;
+          default:
+            _errorMessage = 'An error occurred during sign in. ${error.message}';
+
+        }
+      } else {
+        _errorMessage = error.toString();
+      }
+    });
+  }
   void showPasswordRequirements() {
     showDialog(
       context: context,

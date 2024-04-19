@@ -20,6 +20,23 @@ class _signUpPageState extends State<signUpPage> {
   bool _loading = false;
   String _errorMessage = '';
 
+  void showPasswordRequirements() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Password Requirements"),
+          content: const Text("Your password must be at least 8 characters long, include an uppercase letter, a number, and a special character."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Future<void> signUp() async {
     setState(() {
       _loading = true;
@@ -38,7 +55,25 @@ class _signUpPageState extends State<signUpPage> {
       );
     } catch (error) {
       setState(() {
-        _errorMessage = error.toString();
+        if (error is FirebaseAuthException) {
+          // Firebase Authentication error handling
+          switch (error.code) {
+            case 'email-already-in-use':
+              _errorMessage = 'The email address is already in use.';
+              break;
+            case 'weak-password':
+              _errorMessage = 'The password provided is too weak.';
+              break;
+            case 'invalid-email':
+              _errorMessage = 'The email address is not valid.';
+              break;
+            default:
+              _errorMessage = 'An error occurred during sign up.';
+          }
+        } else {
+          // Other errors
+          _errorMessage = error.toString();
+        }
       });
     } finally {
       setState(() {
@@ -73,7 +108,6 @@ class _signUpPageState extends State<signUpPage> {
       print('User is null');
     }
   }
-
 
 
   @override
@@ -135,19 +169,14 @@ class _signUpPageState extends State<signUpPage> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Password',
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.black,
-                        width: 2,
-                      ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.info_outline),
+                      onPressed: showPasswordRequirements,
                     ),
                   ),
                 ),
@@ -203,5 +232,6 @@ class _signUpPageState extends State<signUpPage> {
       ),
     );
   }
+
 }
 
