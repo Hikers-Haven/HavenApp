@@ -10,16 +10,50 @@ class FourthPage extends StatefulWidget {
   _FourthPageState createState() => _FourthPageState();
 }
 
-class _FourthPageState extends State<FourthPage> {
+class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateMixin {
   CustomBoxDecoration customBox = CustomBoxDecoration();
   List<ChartData> chartData = [];
-  double avg_miles = 0.0;  // Ensuring it's initialized to 0.0
-  double avg_speed = 0.0;  // Ensuring it's initialized to 0.0, to prevent null issues
+  double avg_miles = 0.0;
+  double avg_speed = 0.0;
+  AnimationController? _animationController;
+  Animation<double>? _animation;
 
   @override
   void initState() {
     super.initState();
     _fetchBikingActivity();
+    _initAnimation();
+  }
+
+  void _initAnimation() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 2),
+    );
+    _animation = Tween<double>(begin: 0, end: avg_speed).animate(_animationController!)
+      ..addListener(() {
+        setState(() {});
+      });
+  }
+
+  @override
+  void didUpdateWidget(covariant FourthPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (avg_speed != _animation!.value) {
+      _animation = Tween<double>(begin: _animation!.value, end: avg_speed)
+          .animate(_animationController!)
+        ..addListener(() {
+          setState(() {});
+        });
+      _animationController!.reset();
+      _animationController!.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    super.dispose();
   }
 
   void _showInfoDialog(BuildContext context) {
@@ -145,12 +179,6 @@ class _FourthPageState extends State<FourthPage> {
     }
   }
 
-
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,10 +226,38 @@ class _FourthPageState extends State<FourthPage> {
                 ),
                 Container(
                   width: 290,
-                  height: 50,
+                  height: 70,
                   margin: const EdgeInsets.all(10.0),
                   decoration: customBox.boxWidgetDecoration(),
-                  child: Text("Your average miles in the last 7 days was ${avg_miles.toStringAsFixed(2)} and average speed was ${avg_speed.toStringAsFixed(0)} MPH"),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 5.0),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 16, color: Colors.black),
+                        children: <InlineSpan>[
+                          const TextSpan(text: 'Your average miles in the last 7 days was '),
+                          TextSpan(
+                            text: '${avg_miles.toStringAsFixed(2)} ',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange),
+                          ),
+                          const WidgetSpan(
+                            child: Icon(Icons.directions_bike, size: 18, color: Colors.deepOrange),
+                            alignment: PlaceholderAlignment.middle,
+                          ),
+                          const TextSpan(text: ' and average speed was '),
+                          TextSpan(
+                            text: '${avg_speed.toStringAsFixed(0)} MPH ',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange),
+                          ),
+                          const WidgetSpan(
+                            child: Icon(Icons.speed, size: 18, color: Colors.deepOrange),
+                            alignment: PlaceholderAlignment.middle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 Container(
                   width: 290,
@@ -218,7 +274,16 @@ class _FourthPageState extends State<FourthPage> {
                       RadialAxis(
                         minimum: 0,
                         maximum: 30,
-                        pointers: <GaugePointer>[
+                        ranges: [
+                          GaugeRange(
+                            startValue: 0,
+                            endValue: avg_speed,
+                            color: Colors.deepOrange.withOpacity(1.0),
+                            startWidth: 10,
+                            endWidth: 10,
+                          ),
+                        ],
+                        pointers: [
                           NeedlePointer(
                             value: avg_speed,
                             needleStartWidth: 1,
@@ -229,7 +294,7 @@ class _FourthPageState extends State<FourthPage> {
                                 color: Colors.deepOrange),
                           )
                         ],
-                        annotations: <GaugeAnnotation>[
+                        annotations: [
                           GaugeAnnotation(
                             angle: 90,
                             positionFactor: 0.5,
@@ -255,11 +320,35 @@ class ChartData {
   final Color? color;
 }
 
+// class CustomBoxDecoration {
+//   BoxDecoration boxWidgetDecoration() {
+//     return BoxDecoration(
+//         color: Colors.grey[100],
+//         border: Border.all(width: 6, color: Colors.grey[100]!),
+//         borderRadius: BorderRadius.circular(12));
+//   }
+// }
+
 class CustomBoxDecoration {
   BoxDecoration boxWidgetDecoration() {
     return BoxDecoration(
-        color: Colors.grey[100],
-        border: Border.all(width: 6, color: Colors.grey[100]!),
-        borderRadius: BorderRadius.circular(12));
+      color: const Color(0xFFA881D5),  // A light purple color
+      // This will be overridden by gradient if gradient is used
+      border: Border.all(width: 6, color: Colors.brown),
+      borderRadius: BorderRadius.circular(12),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          // Color(0xFF84D581),  // A fresh greenish color
+          // Color(0xFFD5D281),
+          // Color(0xFFA881D5),
+          // Color(0xFFD58184)
+          Color(0xFFAED581),
+          Color(0xFFAED581)
+        ],
+      ),
+    );
   }
 }
+
