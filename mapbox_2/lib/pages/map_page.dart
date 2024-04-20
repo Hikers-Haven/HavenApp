@@ -11,9 +11,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 // StatefulWidget to handle the dynamic nature of a map page where user interaction causes changes.
 class MapPage extends StatefulWidget {
+  // Create a global key for the map page state. This key is used to access the state of the map page from other parts of the app.
   static final GlobalKey<_MapPageState> mapKey = GlobalKey<_MapPageState>();
 
-  MapPage({Key? key}) : super(key: mapKey);  // Ensure key initialization is correct.
+  // Each map has a unique key to force re-rendering when needed.
+  MapPage({Key? key}) : super(key: mapKey);
 
   @override
   _MapPageState createState() => _MapPageState();
@@ -23,7 +25,8 @@ class MapPage extends StatefulWidget {
 
 // State class for MapPage, includes location and map tracking functionalities.
 class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
-  // Controller for GoogleMap, allows for map interactions.
+
+  // Completer is used to handle asynchronous operations for the future. (e.g., map controller) and to notify when the operation is completed.
   Completer<GoogleMapController> _controller = Completer();
 
   // Sets to keep track of lines (routes) and markers on the map.
@@ -34,8 +37,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   LatLng? _currentLocation;
 
   // Subscriptions to position and compass event streams.
-  StreamSubscription<Position>? _positionStreamSubscription;
-  StreamSubscription<CompassEvent>? _compassSubscription;
+  // A stream subscription is an object that listens to a stream of events and can be paused, resumed, or canceled.
+  StreamSubscription<Position>? _positionStreamSubscription; //position stream subscription is a stream of position events.
+  StreamSubscription<CompassEvent>? _compassSubscription; //compass subscription is a stream of compass events.
 
   // Tracking variables for navigation.
   double _lastBearing = 0.0;
@@ -70,8 +74,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   double plausibleSpeedLimit = 30.0;
 
   // Icons for custom markers on the map.
-  BitmapDescriptor? waterSpotIcon; // ? means it can be null
+  BitmapDescriptor? waterSpotIcon; // BitmapDescriptor is a class that represents a bitmap image used as a marker icon.
   BitmapDescriptor? repairStationIcon; // ? means it can be null
+
+
+  // Important Note:
+  // using ?. will return null if the object is null. (i.e., do not access the property if the object is null).
+  // using ?? will return the right-hand side if the left-hand side is null. (i.e., provide a default value).
+  // using !. will assert that the object is not null. (i.e., throw an error if it is null).
+
 
   @override
   void initState() {
@@ -90,9 +101,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   void updateMapWithLocation(double latitude, double longitude) {
-    if (_controller.isCompleted) {
-      _controller.future.then((controller) {
-        controller.animateCamera(CameraUpdate.newLatLng(LatLng(latitude, longitude)));
+    if (_controller.isCompleted) { // Check if the map controller is ready.
+      _controller.future.then((controller) { // Get the map controller.
+        controller.animateCamera(CameraUpdate.newLatLng(LatLng(latitude, longitude))); // Move the camera to the new location.
       });
     }
   }
@@ -101,7 +112,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
 
-  Future<void> _loadAssetsAndData() async {
+  Future<void> _loadAssetsAndData() async { // Load assets and data necessary for the map. async means it can be paused and resumed but not canceled.
     // Load custom icons for water spots and repair stations.
     await _loadCustomIcon();
     // Load the custom style for the map from assets.
@@ -204,118 +215,17 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     }
   }
 
-  void _updateMapWithLocation(double latitude, double longitude) {
-    // Update the map with the new location
-    if (_controller.isCompleted) {
-      _controller.future.then((controller) {
-        controller.animateCamera(CameraUpdate.newLatLng(LatLng(latitude, longitude)));
-      });
-    }
-  }
 
-  void _updateLocation(Position position) {
-    setState(() {
-      _currentLocation = LatLng(position.latitude, position.longitude);
-      _updateMarker(position);
+  void _updateLocation(Position position) { // Update the current location and marker on the map.
+    setState(() { // Trigger a rebuild of the widget.
+      _currentLocation = LatLng(position.latitude, position.longitude); // Update the current location.
+      _updateMarker(position); // Update the marker on the map.
     });
-    if (!_paused) {
-      _moveCameraToCurrentLocation();
+    if (!_paused) { // Move the camera to the current location if tracking is active.
+      _moveCameraToCurrentLocation(); // Move the camera to the current location.
     }
   }
 
-
-  // void _initLocationService() async {
-  //   // Initialize location services and handle permissions.
-  //   try {
-  //     bool serviceEnabled = await Geolocator.isLocationServiceEnabled(); // Check if location services are enabled.
-  //     if (!serviceEnabled) {
-  //       throw 'Location services are disabled.';
-  //     }
-  //
-  //     LocationPermission permission = await Geolocator.checkPermission(); // Check the current location permission.
-  //     if (permission == LocationPermission.denied) {
-  //       permission = await Geolocator.requestPermission();
-  //       if (permission != LocationPermission.whileInUse && permission != LocationPermission.always) {
-  //         if (mounted) { // Check if the widget is still mounted before showing a dialog. (mounted means it's still active)
-  //           await showDialog(
-  //             context: context,
-  //             builder: (BuildContext context) {
-  //               return AlertDialog(
-  //                 title: const Text('Location Permission Required'),
-  //                 content: const Text(
-  //                     'This app needs location permissions to function. Please grant location permission.'),
-  //                 actions: <Widget>[
-  //                   TextButton(
-  //                     child: const Text('OK'),
-  //                     onPressed: () {
-  //                       SystemChannels.platform.invokeMethod('SystemNavigator.pop');
-  //                     },
-  //                   ),
-  //                 ],
-  //               );
-  //             },
-  //           );
-  //         }
-  //       }
-  //     }
-  //     var locationSettings = const LocationSettings(
-  //       accuracy: LocationAccuracy.high,
-  //       distanceFilter: 5,
-  //     );
-  //
-  //     // Subscribe to position updates based on the specified location settings. Meaning, the app will receive updates when the user moves.
-  //     _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
-  //         .listen((Position position) {
-  //       if (_paused) return;  // Do not update if tracking is paused.
-  //       if (position.accuracy > 50) return;  // Skip updates with low accuracy. (Avoids noise)
-  //
-  //       final LatLng newLocation = LatLng(position.latitude, position.longitude); // Convert the new position to a LatLng object.
-  //       // Calculate the distance moved since the last update.
-  //       if (_lastTrackedLocation != null) { // If there was a previous location. (Not the first update)
-  //         final double distanceMeters = Geolocator.distanceBetween( // Calculate the distance between the last and new locations.
-  //             _lastTrackedLocation!.latitude,
-  //             _lastTrackedLocation!.longitude,
-  //             newLocation.latitude,
-  //             newLocation.longitude);
-  //
-  //         if (distanceMeters < 3.0) return;  // Ignore minor movements. (Less than 3 meters to avoid noise)
-  //
-  //         final DateTime currentTime = DateTime.now(); // Get the current time.
-  //         int timeDifferenceInSeconds;
-  //         if (_previousPositionTime != null) { // Calculate the time difference between the current and previous updates.
-  //           timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
-  //         } else {
-  //           timeDifferenceInSeconds = 0;
-  //         }
-  //
-  //
-  //         if (distanceMeters > 15.0 * timeDifferenceInSeconds) { // Check if the distance moved is plausible and not too large. (15 meters per second is the limit)
-  //           return;  // Ignore improbable large distances in a short time.
-  //         }
-  //
-  //         double speedInMph = position.speed * 2.23694;  // Convert speed to miles per hour.
-  //         updateSpeed(speedInMph);
-  //
-  //         if (timeDifferenceInSeconds >= 2) { // Update the distance traveled if at least 2 seconds have passed.
-  //           final double distanceMiles = distanceMeters * 0.000621371;
-  //           updateDistance(distanceMiles);
-  //         }
-  //
-  //         _previousPositionTime = currentTime; // Update the previous time and location for the next iteration.
-  //         _lastTrackedLocation = newLocation; // Update the last tracked location.
-  //       } else {
-  //         _lastTrackedLocation = newLocation; // Set the last tracked location to the new location if it's the first update.
-  //         _previousPositionTime = DateTime.now(); // Set the previous time to the current time.
-  //       }
-  //
-  //       if (!_controller.isCompleted) { // Move the map camera to the current location if the map is ready.
-  //         _moveCameraToCurrentLocation(); // Move the camera to the current location.
-  //       }
-  //     });
-  //   } catch (e) {
-  //     print('Error initializing location service: $e');
-  //   }
-  // }
 
   void _initLocationService() async {
     // Initialize location services and handle permissions.
@@ -356,19 +266,36 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         distanceFilter: 5,
       );
 
-      _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
-          .listen((Position position) {
+      _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
+        // Listen to the position stream and handle each position update.
+        // locationsettings is a configuration object that specifies the desired accuracy and distance filter for the location updates.
+        // Position is a class that represents a geographical position with latitude, longitude, and other attributes.
         if (_paused) return; // Do not process updates if tracking is paused.
 
-        final LatLng newLocation = LatLng(position.latitude, position.longitude);
-        final DateTime currentTime = DateTime.now();
-        int timeDifferenceInSeconds = _previousPositionTime != null ? currentTime.difference(_previousPositionTime!).inSeconds : 0;
+        final LatLng newLocation = LatLng(position.latitude, position.longitude); // Convert the new position to a LatLng object.
+        final DateTime currentTime = DateTime.now(); // Get the current time.
 
-        double distanceMeters = Geolocator.distanceBetween(
-            _lastTrackedLocation?.latitude ?? 0,
-            _lastTrackedLocation?.longitude ?? 0,
-            newLocation.latitude,
-            newLocation.longitude);
+
+        int timeDifferenceInSeconds = 0;
+        if (_previousPositionTime != null) {
+          timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
+        }
+
+        double distanceMeters;
+        if (_lastTrackedLocation != null) {
+          distanceMeters = Geolocator.distanceBetween(
+              _lastTrackedLocation!.latitude,
+              _lastTrackedLocation!.longitude,
+              newLocation.latitude,
+              newLocation.longitude);
+        } else {
+          distanceMeters = Geolocator.distanceBetween(
+              0,
+              0,
+              newLocation.latitude,
+              newLocation.longitude);
+        }
+
 
         if (distanceMeters > 15.0 * timeDifferenceInSeconds) { // Ignore large implausible moves.
           return;
@@ -419,15 +346,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     });
   }
 
-  // void _moveCameraToCurrentLocation() async {
-  //   // Move the map camera to the current location if the map is ready.
-  //   if (!_controller.isCompleted || _trackingStarted) return; // Do not move the camera if tracking is active.
-  //   final GoogleMapController controller = await _controller.future; // Get the map controller.
-  //   if (_currentLocation != null) { // Check if the current location is available.
-  //     controller.animateCamera(CameraUpdate.newLatLngZoom( // Move the camera to the current location.
-  //         _currentLocation!, 15));
-  //   }
-  // }
 
   void _moveCameraToCurrentLocation() async {
     // Only move the camera if the controller is ready and neither tracking is active nor paused.
@@ -455,21 +373,21 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       print("Total features found: ${data['features'].length}");
 
       for (var feature in data['features']) { // Iterate over each feature in the data.
-        if (feature['geometry']['type'] == "LineString") {
-          List<dynamic> coordinatesList = feature['geometry']['coordinates'] as List;
-          List<LatLng> lineCoordinates = [];
+        if (feature['geometry']['type'] == "LineString") { // Check if the feature represents a line (trail).
+          List<dynamic> coordinatesList = feature['geometry']['coordinates'] as List; // Get the list of coordinates for the trail.
+          List<LatLng> lineCoordinates = []; // Create an empty list to store the LatLng objects.
 
           // Convert each coordinate pair into a LatLng object
-          for (var coord in coordinatesList) {
-            LatLng latLng = LatLng(coord[1], coord[0]);
-            lineCoordinates.add(latLng);
+          for (var coord in coordinatesList) { // Iterate over each coordinate pair.
+            LatLng latLng = LatLng(coord[1], coord[0]); // Create a new LatLng object from the coordinates.
+            lineCoordinates.add(latLng); // Add the new LatLng object to the list.
           }
 
           print("Adding polyline: ${feature['properties']['name']} with points: ${lineCoordinates.length}");
 
-          _polylines.add(Polyline( // Add a new polyline to the set of polylines. This represents a trail on the map.
-            polylineId: PolylineId(feature['properties']['name']),
-            points: lineCoordinates,
+          _polylines.add(Polyline( // Create a new Polyline object with the trail coordinates.
+            polylineId: PolylineId(feature['properties']['name']), // Set the polyline ID to the trail name.
+            points: lineCoordinates, // Set the points of the polyline to the trail coordinates.
             color: Colors.blue,
             width: 3,
           ));
@@ -489,9 +407,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   Future<void> _loadWaterSpots() async {
     // Attempt to load water spot data from a JSON file.
     try {
-      final String waterStationsJsonString = await rootBundle.loadString('assets/waterspots.json');
-      // Decode the JSON string into a list of maps.
-      List<dynamic> waterStations = json.decode(waterStationsJsonString);
+      final String waterStationsJsonString = await rootBundle.loadString('assets/waterspots.json'); // Load the water spots data from the assets.
+
+      List<dynamic> waterStations = json.decode(waterStationsJsonString); // Decode the JSON string into a list of dynamic objects.
 
       if (waterSpotIcon == null) {
         print("Water spot icon is not loaded");
@@ -499,12 +417,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       }
 
       // Update the UI with the new markers.
-      setState(() {
-        for (var station in waterStations) {
+      setState(() { // Trigger a rebuild of the widget.
+        for (var station in waterStations) { // Iterate over each water station.
           // Convert each station's data into a marker.
-          Marker newMarker = Marker(
-            markerId: MarkerId(station['name']),
-            position: LatLng(station['lat'], station['lng']),
+          Marker newMarker = Marker( // Create a new marker object.
+            markerId: MarkerId(station['name']), // Set the marker ID to the station name.
+            position: LatLng(station['lat'], station['lng']), // Set the position of the marker to the station coordinates.
             icon: waterSpotIcon!, // Ensure the icon is not null.
           );
           _markers.add(newMarker); // Add the new marker to the set.
@@ -524,9 +442,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   Future<void> _loadRepairStations() async {
     // Attempt to load repair station data from a JSON file.
     try {
-      final String repairStationsJsonString = await rootBundle.loadString('assets/repairstations.json');
-      // Decode the JSON string into a list of dynamic objects.
-      List<dynamic> repairStations = json.decode(repairStationsJsonString);
+      final String repairStationsJsonString = await rootBundle.loadString('assets/repairstations.json'); // Load the repair station data from the assets.
+      List<dynamic> repairStations = json.decode(repairStationsJsonString); // Decode the JSON string into a list of dynamic objects.
 
       if (repairStationIcon == null) { // Ensure the repair station icon is loaded.
         print("Repair station icon is not loaded");
@@ -535,11 +452,11 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
       // Update the UI state with new markers.
       setState(() {
-        for (var station in repairStations) {
+        for (var station in repairStations) { // Iterate over each repair station.
           // Convert each station's data into a marker.
-          Marker newMarker = Marker(
-            markerId: MarkerId(station['name']),
-            position: LatLng(station['lat'], station['lng']),
+          Marker newMarker = Marker( // Create a new marker object.
+            markerId: MarkerId(station['name']), // Set the marker ID to the station name.
+            position: LatLng(station['lat'], station['lng']), // Set the position of the marker to the station coordinates.
             icon: repairStationIcon!, // Ensure the icon is not null.
           );
           _markers.add(newMarker); // Add the new marker to the set.
@@ -561,30 +478,28 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   Future<BitmapDescriptor> _createMarkerImageFromAsset(String assetName) async {
+    // Create a custom marker icon from an asset.
     // Load a custom image from assets to be used as a map marker icon.
     const ImageConfiguration imageConfiguration =
-    ImageConfiguration(devicePixelRatio: 2.5);
-    BitmapDescriptor bitmapDescriptor = await BitmapDescriptor.fromAssetImage(
-      imageConfiguration,
-      assetName,
-    );
+        ImageConfiguration(devicePixelRatio: 2.5);
+    BitmapDescriptor bitmapDescriptor =
+        await BitmapDescriptor.fromAssetImage(imageConfiguration, assetName);
     return bitmapDescriptor;
   }
 
-  void _updateMarker(Position position) async {
-    // Update the location marker on the map to reflect the current position.
-    for (int i = 0; i < _markers.length; i++) {
-      if (_markers.elementAt(i).markerId == const MarkerId("currentLocation")) {
-        _markers.remove(_markers.elementAt(i));
+  void _updateMarker(Position position) async { // Update the location marker on the map to reflect the current position.
+    for (int i = 0; i < _markers.length; i++) { // Iterate over the markers to find the current location marker.
+      if (_markers.elementAt(i).markerId == const MarkerId("currentLocation")) { // Check if the marker ID matches the current location marker.
+        _markers.remove(_markers.elementAt(i)); // Remove the current location marker.
         break; // Exit the loop once the marker is found and removed.
       }
     }
 
     // Load a custom icon for the current location marker.
-    BitmapDescriptor icon = await _createMarkerImageFromAsset('assets/navicon.png');
-    Marker newMarker = Marker(
-        markerId: const MarkerId("currentLocation"),
-        position: LatLng(position.latitude, position.longitude),
+    BitmapDescriptor icon = await _createMarkerImageFromAsset('assets/navicon.png'); // Load the custom icon from assets.
+    Marker newMarker = Marker( // Create a new marker object for the current location.
+        markerId: const MarkerId("currentLocation"), // Set the marker ID to "currentLocation".
+        position: LatLng(position.latitude, position.longitude), // Set the position of the marker to the current location.
         icon: icon
     );
     _markers.add(newMarker); // Add the new current location marker.
@@ -617,7 +532,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     if (!_controller.isCompleted || _paused || !_trackingStarted) return; // Do not update if the map controller is not ready or tracking is paused.
 
     final GoogleMapController controller = await _controller.future;  // Get the map controller.
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition( // Animate the camera to rotate based on the current bearing.
       target: _currentLocation!, // Move the camera to the current location.
       bearing: _lastBearing, // Rotate the camera to align with the current bearing.
       zoom: 16.0,
@@ -672,9 +587,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     }
   }
 
-  // using ?. operator to access the compass subscription only if it is not null.
-  // using ?? operator to provide a default value of 0.0 if the _currentSpeed is null.
-  // using !. operator to assert that the _currentLocation is not null.
+
   void _pauseTracking() {
     // Pause the tracking of the user's movement.
     _positionStreamSubscription?.pause(); //access the position stream subscription only if it is not null and pause it.
@@ -707,12 +620,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
           _resumeTracking(); // Resume tracking if it was paused.
         }
       }
-      // _paused = !_paused;
-      // if (_paused) {
-      //   _pauseTracking();
-      // } else {
-      //   _resumeTracking();
-      // }
     });
   }
 
@@ -738,9 +645,27 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       }
       Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
 
-      double currentFastestSpeed = data['fastest_speed'] ?? 0.0;
-      double currentLongestDistance = data['longest_distance'] ?? 0.0;
-      int currentLongestDuration = data['longest_duration'] ?? 0;
+      double currentFastestSpeed;
+      if (data['fastest_speed'] != null) {
+        currentFastestSpeed = data['fastest_speed'];
+      } else {
+        currentFastestSpeed = 0.0;
+      }
+
+      double currentLongestDistance;
+      if (data['longest_distance'] != null) {
+        currentLongestDistance = data['longest_distance'];
+      } else {
+        currentLongestDistance = 0.0;
+      }
+
+      int currentLongestDuration;
+      if (data['longest_duration'] != null) {
+        currentLongestDuration = data['longest_duration'];
+      } else {
+        currentLongestDuration = 0;
+      }
+
 
       Map<String, dynamic> updates = {};
       if (newSpeed > currentFastestSpeed) {
@@ -760,12 +685,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
   void _storeBikingActivity(String? userId) async {
     // Store the session data in Firestore under the user's document.
-    if (userId != null && _lastTrackedLocation != null) {
+    if (userId != null && _lastTrackedLocation != null) { // Check if the user ID and last tracked location are available.
       int totalElapsedTime = _sessionEnd.difference(_sessionStart).inSeconds -
-          _pausedDuration.inSeconds;
+          _pausedDuration.inSeconds; // Calculate the total elapsed time for the session.
 
       double averageSpeedInMph;
-      if (_speeds.isNotEmpty) {
+      if (_speeds.isNotEmpty) { // Calculate the average speed if there are speed measurements.
         double totalSpeed = 0.0;
         for (double speed in _speeds) {
           totalSpeed += speed;
@@ -838,15 +763,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               ),
             ),
           if (!_trackingStarted)
-            // Positioned(
-            //   top: 20,
-            //   right: 20,
-            //   child: FloatingActionButton(
-            //     onPressed: _recenterMap,
-            //     backgroundColor: Colors.blue,
-            //     child: const Icon(Icons.gps_fixed),
-            //   ),
-            // ),
             Positioned(
               top: 20,
               right: 20,
