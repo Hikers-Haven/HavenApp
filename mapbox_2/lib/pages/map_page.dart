@@ -296,12 +296,13 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               newLocation.longitude);
         }
 
+        if (distanceMeters < 3.0) return;
 
         if (distanceMeters > 15.0 * timeDifferenceInSeconds) { // Ignore large implausible moves.
           return;
         }
 
-        if (timeDifferenceInSeconds >= 2) {
+        if (timeDifferenceInSeconds >= 2) { // Calculate the distance traveled if at least 2 seconds have passed.
           double distanceMiles = distanceMeters * 0.000621371;
           updateDistance(distanceMiles);
         }

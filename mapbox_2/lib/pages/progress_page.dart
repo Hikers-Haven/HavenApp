@@ -15,6 +15,10 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
   List<ChartData> chartData = [];
   double avg_miles = 0.0;
   double avg_speed = 0.0;
+  int weekday_num = 0;
+  String tStamp = "";
+  List<HoldSnapData> holdSData = [];
+  String test = "";
   AnimationController? _animationController;
   Animation<double>? _animation;
 
@@ -37,20 +41,6 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
   }
 
   @override
-  void didUpdateWidget(covariant FourthPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (avg_speed != _animation!.value) {
-      _animation = Tween<double>(begin: _animation!.value, end: avg_speed)
-          .animate(_animationController!)
-        ..addListener(() {
-          setState(() {});
-        });
-      _animationController!.reset();
-      _animationController!.forward();
-    }
-  }
-
-  @override
   void dispose() {
     _animationController?.dispose();
     super.dispose();
@@ -63,9 +53,7 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
         return AlertDialog(
           title: Text("Personal Progress"),
           content: Text(
-            "This page displays biking activity over the past week."
-                "It shows the distance traveled in each biking session."
-                "You can use this information to track your progress over time.",
+            "This page displays biking activity over the past week. It shows the distance traveled in each biking session. You can use this information to track your progress over time.",
           ),
           actions: [
             TextButton(
@@ -79,103 +67,132 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
       },
     );
   }
+
   Future<void> _fetchBikingActivity() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       String userId = user.uid;
-      DateTime now = DateTime.now();
-      DateTime sevenDaysAgo = now.subtract(Duration(days: 6)); // Including today
-
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('biking_sessions')
-          .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
           .orderBy('timestamp', descending: true)
           .get();
 
-      Map<String, double> dailyDistances = {};
-      Map<String, int> counts = {};
+      DateTime d = DateTime.now();
+      int currentDay = GetWeekDayAsInteger().convertTimeStamp(d);
+      int checkCurrentDay = GetWeekDayAsInteger().convertTimeStamp(d);
 
-      for (int i = 0; i < 7; i++) {
-        DateTime day = sevenDaysAgo.add(Duration(days: i));
-        String formattedDate = DateFormat('MM/dd').format(day);
-        dailyDistances[formattedDate] = 0.0;
-        counts[formattedDate] = 0;
-      }
+      List<HoldSnapData> holdSnapshotData = [];
+      List<ChartData> data = [];
+      double avg_m = 0.0;
+      double avg_s = 0.0;
+      String tS = "";
+      double average = 0.0;
+      double aver_m = 0.0;
 
-      for (var doc in snapshot.docs) {
-        Timestamp t = doc['timestamp'];
-        DateTime date = t.toDate();
-        String formattedDate = DateFormat('MM/dd').format(date);
-        if (dailyDistances.containsKey(formattedDate)) {
-          // Explicitly cast the data to Map<String, dynamic>
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          double distance = 0.0; // Initialize distance
-          if (data.containsKey('distance_traveled') && data['distance_traveled'] != null) {
-            distance = data['distance_traveled'].toDouble();
+      String testString = "";
+      Timestamp theTime = snapshot.docs.first['timestamp'];
+      DateTime dd = theTime.toDate();
+      int cts = GetWeekDayAsInteger().convertTimeStamp(dd);
+      int currentTimeStamp = 0;
+
+      double bigolavg = 0;
+      double bigoldist = 0;
+      int ctr = 0;
+      if(snapshot.docs.isNotEmpty){
+        for (var doc in snapshot.docs) {
+          Timestamp t = doc['timestamp'];
+          DateTime timeStampDate = t.toDate();
+          tS = GetWeekDayAsInteger().convertTimeStamp(timeStampDate).toString();
+          currentTimeStamp = GetWeekDayAsInteger().convertTimeStamp(timeStampDate);
+
+          if (currentTimeStamp != cts){
+            int getday = currentTimeStamp + (cts - currentTimeStamp);
+            holdSnapshotData.add(HoldSnapData(getday, avg_m, avg_s));
+            cts = getday - (cts - currentTimeStamp);
+            avg_m = 0.0;
+            avg_s = 0.0;
           }
-          if (dailyDistances.containsKey(formattedDate)) {
-            if (dailyDistances[formattedDate] == null) {
-              dailyDistances[formattedDate] = 0.0; // Initialize to zero if null
-            }
-            dailyDistances[formattedDate] = dailyDistances[formattedDate]! + distance; // Safely add distance
-          }
 
-          if (counts.containsKey(formattedDate)) {
-            if (counts[formattedDate] == null) {
-              counts[formattedDate] = 0; // Initialize to zero if null
-            }
-            counts[formattedDate] = counts[formattedDate]! + 1; // Safely increment
-          }
+          if (doc['distance_traveled'] > 0.1 && doc['average_speed'] > 1.0){
+            double getDist = doc['distance_traveled'];
+            String conDist = getDist.toStringAsFixed(2);
+            double dist = double.parse(conDist);
+            avg_m += dist;
 
+            double getSpeed = doc['average_speed'];
+            String conSpeed = getSpeed.toStringAsFixed(1);
+            double avgSpeed = double.parse(conSpeed);
+            avg_s += avgSpeed;
+
+            print("Distance: $dist");
+            bigoldist += dist;
+            print("Speed: $avgSpeed");
+            bigolavg += avgSpeed;
+            ctr += 1;
+
+            print("Big ol dist: $bigoldist");
+            print("Big ol avg: $bigolavg");
+            print("Ctr: $ctr");
+
+          }
         }
-      }
 
-      double totalDistance = 0.0;
-      int daysWithData = 0;
-      for (double distance in dailyDistances.values) {
-        totalDistance += distance;
-      }
-      for (int count in counts.values) {
-        if (count > 0) {
-          daysWithData++;
+        holdSnapshotData.add(HoldSnapData(currentTimeStamp, avg_m, avg_s));
+
+        double average_s = 0.0;
+        double average_m = 0.0;
+        int size = holdSnapshotData.length;
+
+        int itr = 7;
+        int x = holdSnapshotData.elementAt(0).day;
+        for (int i = 0; i < itr; i++){
+          if (holdSnapshotData.isNotEmpty){
+            x = holdSnapshotData.elementAt(0).day;
+          } else {
+            x = 0;
+          }
+
+          if (checkCurrentDay != x){
+            data.add(ChartData("${checkCurrentDay}th", 0.0, Colors.deepOrange));
+            checkCurrentDay -= 1;
+          } else if(checkCurrentDay == x){
+            data.add(ChartData("${checkCurrentDay}th", holdSnapshotData.first.distance, Colors.deepOrange));
+            average_m += holdSnapshotData.first.distance;
+            average_s += holdSnapshotData.first.average_speed;
+            holdSnapshotData.removeAt(0);
+            checkCurrentDay -= 1;
+          }
         }
-      }
 
-      List<ChartData> localChartData = [];
-      for (var entry in dailyDistances.entries) {
-        localChartData.add(ChartData(entry.key, entry.value, Colors.deepOrange));
+        average = average_s / size;
+        String convertAverage = average.toStringAsFixed(1);
+        average = double.parse(convertAverage);
+
+        aver_m = average_m / size;
+        String convertAverage_m = aver_m.toStringAsFixed(2);
+        aver_m = double.parse(convertAverage_m);
+      }
+      else if (snapshot.docs.isEmpty){ // if a user has no data yet (new account)
+        testString = "user does not have data";
+        d = DateTime.now();
+        currentDay = GetWeekDayAsInteger().convertTimeStamp(d);
+
+        for (int i = 0; i < 7; i++){
+          data.add(ChartData(currentDay.toString(), 0.0, Colors.deepOrange));
+          currentDay -= 1;
+        }
       }
 
       setState(() {
-        chartData = localChartData;
-
-        // Using if-else for avg_miles calculation
-        if (daysWithData > 0) {
-          avg_miles = totalDistance / daysWithData;
-        } else {
-          avg_miles = 0.0;
-        }
-
-        double totalSpeed = 0.0;
-        int countSpeeds = 0;
-        for (var doc in snapshot.docs) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          if (data.containsKey('average_speed') && data['average_speed'] != null) {
-            totalSpeed += data['average_speed'].toDouble();
-            countSpeeds++;
-          }
-        }
-
-        // Using if-else for avg_speed calculation
-        if (countSpeeds > 0) {
-          avg_speed = totalSpeed / countSpeeds;
-        } else {
-          avg_speed = 0.0;
-        }
+        chartData = data.reversed.toList();
+        avg_miles = aver_m;
+        avg_speed = average;
+        tStamp = tS;
+        test = testString;
+        holdSData = holdSnapshotData;
       });
-
     }
   }
 
@@ -247,7 +264,7 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
                           ),
                           const TextSpan(text: ' and average speed was '),
                           TextSpan(
-                            text: '${avg_speed.toStringAsFixed(0)} MPH ',
+                            text: '${avg_speed.toStringAsFixed(1)} MPH ',
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange),
                           ),
                           const WidgetSpan(
@@ -298,7 +315,7 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
                           GaugeAnnotation(
                             angle: 90,
                             positionFactor: 0.5,
-                            widget: Text("${avg_speed.toStringAsFixed(0)} MPH",
+                            widget: Text("${avg_speed.toStringAsFixed(1)} MPH",
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange, fontSize: 20)),
                           )
                         ],
@@ -320,14 +337,29 @@ class ChartData {
   final Color? color;
 }
 
-// class CustomBoxDecoration {
-//   BoxDecoration boxWidgetDecoration() {
-//     return BoxDecoration(
-//         color: Colors.grey[100],
-//         border: Border.all(width: 6, color: Colors.grey[100]!),
-//         borderRadius: BorderRadius.circular(12));
-//   }
-// }
+class HoldSnapData {
+  HoldSnapData(this.day, this.distance, this.average_speed);
+  final int day;
+  final double distance;
+  final double average_speed;
+}
+
+class GetWeekDayAsInteger{
+  GetWeekDayAsInteger();
+
+  int convertTimeStamp(theDate){
+    String convertDateToString = theDate.toString();
+    convertDateToString = DateFormat.yMMMd().add_jms().format(theDate).toString();
+
+    // grab the time stamp string and grab the current day number
+    List<String> timeToList = convertDateToString.split(", ");
+    String getFirstIndex = timeToList[0];
+    List<String> getDay = getFirstIndex.split(" ");
+    String getDayNumber = getDay[1];
+    int parseDate = int.parse(getDayNumber);
+    return parseDate;
+  }
+}
 
 class CustomBoxDecoration {
   BoxDecoration boxWidgetDecoration() {
@@ -351,4 +383,6 @@ class CustomBoxDecoration {
     );
   }
 }
+
+
 
