@@ -266,59 +266,42 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         distanceFilter: 5,
       );
 
-      _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
-        // Listen to the position stream and handle each position update.
-        // locationsettings is a configuration object that specifies the desired accuracy and distance filter for the location updates.
-        // Position is a class that represents a geographical position with latitude, longitude, and other attributes.
-        if (_paused) return; // Do not process updates if tracking is paused.
-
-        final LatLng newLocation = LatLng(position.latitude, position.longitude); // Convert the new position to a LatLng object.
-        final DateTime currentTime = DateTime.now(); // Get the current time.
 
 
-        int timeDifferenceInSeconds = 0;
-        if (_previousPositionTime != null) {
-          timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
-        }
+      _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
+          .listen((Position position) {
+        if (_paused) return;
 
-        double distanceMeters;
-        if (_lastTrackedLocation != null) {
-          distanceMeters = Geolocator.distanceBetween(
+        final LatLng newLocation = LatLng(position.latitude, position.longitude);
+        final DateTime currentTime = DateTime.now();
+
+        if (_lastTrackedLocation != null && _previousPositionTime != null) {
+          double distanceMeters = Geolocator.distanceBetween(
               _lastTrackedLocation!.latitude,
               _lastTrackedLocation!.longitude,
               newLocation.latitude,
               newLocation.longitude);
+          int timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
+
+          if (distanceMeters >= 3.0 && distanceMeters <= maxDistancePerSecond * timeDifferenceInSeconds) {
+            double distanceMiles = distanceMeters * 0.000621371;
+            updateDistance(distanceMiles);
+            double speedInMph = position.speed * 2.23694;
+            updateSpeed(speedInMph); 
+
+            _previousPositionTime = currentTime;
+            _lastTrackedLocation = newLocation;
+
+            setState(() {}); // Trigger a rebuild to reflect updated values
+          }
         } else {
-          distanceMeters = Geolocator.distanceBetween(
-              0,
-              0,
-              newLocation.latitude,
-              newLocation.longitude);
-        }
-
-        if (distanceMeters < 3.0) return;
-
-        if (distanceMeters > 15.0 * timeDifferenceInSeconds) { // Ignore large implausible moves.
-          return;
-        }
-
-        if (timeDifferenceInSeconds >= 2) { // Calculate the distance traveled if at least 2 seconds have passed.
-          double distanceMiles = distanceMeters * 0.000621371;
-          updateDistance(distanceMiles);
-        }
-
-        double speedInMph = position.speed * 2.23694; // Convert speed to mph.
-        updateSpeed(speedInMph);
-
-        _previousPositionTime = currentTime;
-        _lastTrackedLocation = newLocation;
-
-        _updateLocation(position); // Update the current location and UI but not necessarily the camera position.
-
-        if (!_paused && _controller.isCompleted) { // Only auto-center if not paused and controller is ready.
-          _moveCameraToCurrentLocation();
+          _previousPositionTime = currentTime;
+          _lastTrackedLocation = newLocation;
+          setState(() {}); // Initial state update when no previous location exists
         }
       });
+
+
     } catch (e) {
       print('Error initializing location service: $e');
     }
