@@ -29,16 +29,33 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
     _initAnimation();
   }
 
+  // void _initAnimation() {
+  //   _animationController = AnimationController(
+  //     vsync: this,
+  //     duration: Duration(seconds: 2),
+  //   );
+  //   _animation = Tween<double>(begin: 0, end: avg_speed).animate(_animationController!)
+  //     ..addListener(() {
+  //       setState(() {});
+  //     });
+  // }
+
   void _initAnimation() {
     _animationController = AnimationController(
       vsync: this,
       duration: Duration(seconds: 2),
     );
-    _animation = Tween<double>(begin: 0, end: avg_speed).animate(_animationController!)
-      ..addListener(() {
-        setState(() {});
-      });
+
+    // Create the animation
+    _animation = Tween<double>(begin: 0, end: avg_speed).animate(_animationController as Animation<double>);
+    //tween means the range of values that the animation will go through
+
+    // Add the listener
+    _animationController?.addListener(() {
+      setState(() {});
+    });
   }
+
 
   @override
   void dispose() {
@@ -115,7 +132,7 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
             avg_s = 0.0;
           }
 
-          if (doc['distance_traveled'] > 0.1 && doc['average_speed'] > 1.0){
+          if (doc['distance_traveled'] > 0.1 && doc['average_speed'] > 1.0 && doc['time_elapsed'] > 1.0){
             double getDist = doc['distance_traveled'];
             String conDist = getDist.toStringAsFixed(2);
             double dist = double.parse(conDist);
@@ -135,6 +152,7 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
             print("Big ol dist: $bigoldist");
             print("Big ol avg: $bigolavg");
             print("Ctr: $ctr");
+            print("time elapsed: ${doc['time_elapsed']}");
 
           }
         }

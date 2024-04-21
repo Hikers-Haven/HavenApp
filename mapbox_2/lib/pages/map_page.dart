@@ -283,11 +283,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               newLocation.longitude);
           int timeDifferenceInSeconds = currentTime.difference(_previousPositionTime!).inSeconds;
 
+          if (distanceMeters < 3.0) {
+            return;
+          }
+
           if (distanceMeters >= 3.0 && distanceMeters <= maxDistancePerSecond * timeDifferenceInSeconds) {
             double distanceMiles = distanceMeters * 0.000621371;
             updateDistance(distanceMiles);
             double speedInMph = position.speed * 2.23694;
-            updateSpeed(speedInMph); 
+            updateSpeed(speedInMph);
 
             _previousPositionTime = currentTime;
             _lastTrackedLocation = newLocation;
