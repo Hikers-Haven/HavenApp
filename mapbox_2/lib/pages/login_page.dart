@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:email_validator/email_validator.dart'; // Add this import
+import 'package:email_validator/email_validator.dart'; // Ensure this import is correct
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showSignUpPage;
@@ -18,18 +18,17 @@ class _LoginPageState extends State<LoginPage> {
   String _errorMessage = '';
 
   Future<void> handleSubmit() async {
-    // Use EmailValidator to validate the email format
     if (!EmailValidator.validate(_emailController.text.trim())) {
       setState(() {
         _errorMessage = 'Invalid email format.';
-        _loading = false; // Stop the loading process as validation fails
+        _loading = false;
       });
-      return; // Stop further execution if validation fails
+      return;
     }
 
     setState(() {
       _loading = true;
-      _errorMessage = ''; // Clear any previous error message
+      _errorMessage = '';
     });
 
     try {
@@ -74,20 +73,19 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  void showPasswordRequirements() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Password Requirements"),
-        content: const Text("Your password must be at least 8 characters long, include an uppercase letter, a number, and a special character."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
+  Future<void> resetPassword() async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: _emailController.text.trim());
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Password reset email sent."),
+        backgroundColor: Colors.green,
+      ));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Error sending password reset email."),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   @override
@@ -101,10 +99,7 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  "Login",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-                ),
+                const Text("Login", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,
@@ -126,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.info_outline),
-                      onPressed: showPasswordRequirements,
+                      onPressed: () {}, // Removed function for simplicity
                     ),
                   ),
                 ),
@@ -160,6 +155,17 @@ class _LoginPageState extends State<LoginPage> {
                       onTap: widget.showSignUpPage,
                       child: const Text(
                         'Register now',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: resetPassword,
+                      child: const Text(
+                        'Forgot password?',
                         style: TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,
