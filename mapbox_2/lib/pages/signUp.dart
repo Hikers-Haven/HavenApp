@@ -17,6 +17,7 @@ class _signUpPageState extends State<signUpPage> {
   final _passwordController = TextEditingController();
 
   bool _loading = false;
+  bool _isPasswordValid = false; // Add this line to track password validity
   String _errorMessage = '';
 
   void showPasswordRequirements() {
@@ -155,14 +156,15 @@ class _signUpPageState extends State<signUpPage> {
                   defaultColor: Colors.grey,
                   successColor: Colors.green,
                   failureColor: Colors.red,
-                  onSuccess: () {},
+                  onSuccess: () => setState(() => _isPasswordValid = true),
+                  onFail: () => setState(() => _isPasswordValid = false),
                 ),
               ),
               const SizedBox(height: 20),
               Flexible(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.lightGreenAccent),
-                  onPressed: _loading ? null : signUp,
+                  onPressed: (_loading || !_isPasswordValid) ? null : signUp,
                   child: _loading ? CircularProgressIndicator(color: Colors.white) : const Text('Sign Up'),
                 ),
               ),
