@@ -17,6 +17,14 @@ class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
   String _errorMessage = '';
 
+  bool _showPassword = false;
+
+  // Function to toggle the visibility of the password
+  void togglePasswordVisibility() {
+    setState(() {
+      _showPassword = !_showPassword;
+    });
+  }
   Future<void> handleSubmit() async {
     if (!EmailValidator.validate(_emailController.text.trim())) {
       setState(() {
@@ -113,15 +121,16 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_showPassword, // Toggle based on show/hide
                   decoration: InputDecoration(
                     hintText: 'Password',
                     focusedBorder: const UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.black, width: 2),
                     ),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.info_outline),
-                      onPressed: () {}, // Removed function for simplicity
+                      // Change the icon based on show/hide state
+                      icon: Icon(_showPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: togglePasswordVisibility, // Toggle password visibility
                     ),
                   ),
                 ),
@@ -146,15 +155,11 @@ class _LoginPageState extends State<LoginPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'Not a member?',
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: widget.showSignUpPage,
                       child: const Text(
-                        'Register now',
+                        'Register here',
                         style: TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,

@@ -19,7 +19,13 @@ class _signUpPageState extends State<signUpPage> {
   bool _loading = false;
   bool _isPasswordValid = false; // Add this line to track password validity
   String _errorMessage = '';
+  bool _showPassword = false;
 
+  void togglePasswordVisibility() {
+    setState(() {
+      _showPassword = !_showPassword;
+    });
+  }
   void showPasswordRequirements() {
     showDialog(
       context: context,
@@ -133,12 +139,15 @@ class _signUpPageState extends State<signUpPage> {
               Flexible(
                 child: TextFormField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_showPassword,
                   decoration: InputDecoration(
                     hintText: 'Password',
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.info_outline),
-                      onPressed: showPasswordRequirements,
+                      icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: togglePasswordVisibility,
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black, width: 2),
                     ),
                   ),
                 ),
