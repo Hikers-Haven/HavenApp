@@ -35,63 +35,6 @@ class _SecondPageState extends State<SecondPage> {
   List<Object?> dataList = []; // List to hold fetched data
 
   @override
-  void initState() {
-    super.initState();
-    // Fetch water stations data when the page loads
-    fetchData("Water Stations").then((_) {
-      // Set selectedTab to 1 after fetching data
-      setState(() {
-        selectedTab = 1;
-      });
-    });
-  }
-
-  Future<void> fetchData(String category) async {
-    final ref = FirebaseDatabase.instance.ref();
-    dataList.clear(); // Clear the list before fetching new data
-
-    String poiType = category == "Water Stations" ? "WS" : "BR";
-
-    for (int i = 1; i <= (category == "Water Stations" ? 8 : 5); i++) {
-      final snapshot = await ref.child('POI/$poiType$i').get();
-      if (snapshot.exists) {
-        // Check if snapshot value is not null
-        if (snapshot.value != null) {
-          Map<dynamic, dynamic> map = snapshot.value! as Map<dynamic, dynamic>;
-          var pid = map["pid"];
-          var lat = map["lat"];
-          var lng = map["lng"];
-          // Check if 'lat' and 'lng' properties exist and are not null
-          if (lat != null && lng != null) {
-            // Create MyData instance from the snapshot data
-            MyData data = MyData(
-              pid,
-              lat,
-              lng,
-            );
-            dataList.add(data);
-          }
-        } else {
-          print('No data available for $category $i.');
-        }
-      }
-    }
-  }
-
-  String getTitleText() {
-    switch (selectedTab) {
-      case 1:
-        return "Water Station";
-      case 2:
-        return "Repair Station";
-      case 3:
-        return "More";
-      default:
-        return "Default Title";
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -178,10 +121,11 @@ class _SecondPageState extends State<SecondPage> {
                       VoteWidget(textAreaId: textAreaId), // Pass unique textAreaId
                       ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context, {'latitude': lat, 'longitude': lng});
+                          Navigator.pop(context, {'latitude': lat, 'longitude': lng}); // Then pass data back.// This closes the drawer.
                         },
                         child: Text('Show Location'),
                       ),
+
                     ],
                   );
                 },
@@ -191,6 +135,63 @@ class _SecondPageState extends State<SecondPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch water stations data when the page loads
+    fetchData("Water Stations").then((_) {
+      // Set selectedTab to 1 after fetching data
+      setState(() {
+        selectedTab = 1;
+      });
+    });
+  }
+
+  Future<void> fetchData(String category) async {
+    final ref = FirebaseDatabase.instance.ref();
+    dataList.clear(); // Clear the list before fetching new data
+
+    String poiType = category == "Water Stations" ? "WS" : "BR";
+
+    for (int i = 1; i <= (category == "Water Stations" ? 8 : 5); i++) {
+      final snapshot = await ref.child('POI/$poiType$i').get();
+      if (snapshot.exists) {
+        // Check if snapshot value is not null
+        if (snapshot.value != null) {
+          Map<dynamic, dynamic> map = snapshot.value! as Map<dynamic, dynamic>;
+          var pid = map["pid"];
+          var lat = map["lat"];
+          var lng = map["lng"];
+          // Check if 'lat' and 'lng' properties exist and are not null
+          if (lat != null && lng != null) {
+            // Create MyData instance from the snapshot data
+            MyData data = MyData(
+              pid,
+              lat,
+              lng,
+            );
+            dataList.add(data);
+          }
+        } else {
+          print('No data available for $category $i.');
+        }
+      }
+    }
+  }
+
+  String getTitleText() {
+    switch (selectedTab) {
+      case 1:
+        return "Water Station";
+      case 2:
+        return "Repair Station";
+      case 3:
+        return "More";
+      default:
+        return "Default Title";
+    }
   }
 
   void _showInfoDialog(BuildContext context) {
