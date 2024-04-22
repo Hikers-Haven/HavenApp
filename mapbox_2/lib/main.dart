@@ -42,14 +42,20 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
+  MyHomePage({Key? key}) : super(key: key);
+
+  static final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
+
 
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        key: MyHomePage.scaffoldKey,
         appBar: customAppBar(),
         drawer: Drawer(
           child: Container(
@@ -76,24 +82,27 @@ class _MyHomePageState extends State<MyHomePage> {
                     Navigator.of(context).push(MaterialPageRoute(builder: (context) => FirstPage()));
                   },
                 ),
+                // Inside the onTap of the ListTile that navigates to SecondPage
                 ListTile(
                   leading: Icon(Icons.tire_repair),
                   title: Text('Points of Interest', style: TextStyle(fontSize: 20)),
                   onTap: () async {
+                    // Close the drawer first
+                    MyHomePage.scaffoldKey.currentState?.openEndDrawer();
+                    // Navigate and wait for the result
                     final result = await Navigator.of(context).push(MaterialPageRoute(builder: (context) => SecondPage()));
                     if (result != null && result.containsKey('latitude') && result.containsKey('longitude')) {
                       double latitude = double.parse(result['latitude']);
                       double longitude = double.parse(result['longitude']);
 
                       // Access the state of MapPage using the GlobalKey
-                      if (!MapPage.mapKey.currentState!.trackingIsActive()) {
+                      if (MapPage.mapKey.currentState != null && !MapPage.mapKey.currentState!.trackingIsActive()) {
                         MapPage.mapKey.currentState!.updateMapWithLocation(latitude, longitude);
                       }
                     }
                   },
-
-
                 ),
+
                 ListTile(
                   leading: Icon(Icons.bar_chart),
                   title: Text('Personal Progress', style: TextStyle(fontSize: 20)),
@@ -102,14 +111,24 @@ class _MyHomePageState extends State<MyHomePage> {
                   },
                 ),
                 Container(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      FirebaseAuth.instance.signOut();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                  padding: EdgeInsets.all(16.0), // Adds padding around the button for better spacing
+                  child: Center(
+                    child: SizedBox(
+                      width: 400,
+                      height: 30,// Specify the width you want for your button
+                      child: ElevatedButton(
+                        onPressed: () {
+                          FirebaseAuth.instance.signOut();
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            shape: RoundedRectangleBorder( // Adds rounded corners to the button
+                                borderRadius: BorderRadius.circular(8)
+                            )
+                        ),
+                        child: Text('Sign Out'),
+                      ),
                     ),
-                    child: Text('Sign Out'),
                   ),
                 )
               ],
