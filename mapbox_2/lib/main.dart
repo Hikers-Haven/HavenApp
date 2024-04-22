@@ -108,10 +108,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
+                      fixedSize: Size(100, 50), // Adjust width and height as needed
                     ),
                     child: Text('Sign Out'),
                   ),
-                )
+                ),
               ],
             ),
           ),

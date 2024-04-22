@@ -147,11 +147,7 @@ class _LoginPageState extends State<LoginPage> {
                   )
                       : const Text('Sign In'),
                 ),
-                if (_errorMessage.isNotEmpty)
-                  Text(
-                    _errorMessage,
-                    style: const TextStyle(color: Colors.red),
-                  ),
+                if (_errorMessage.isNotEmpty) Center(child: Text(_errorMessage, style: TextStyle(color: Colors.red))),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
