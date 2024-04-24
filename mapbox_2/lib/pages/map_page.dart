@@ -264,7 +264,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
         }
       }
       var locationSettings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
+        accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 0, // was 1, then 5, now 0
       );
 
