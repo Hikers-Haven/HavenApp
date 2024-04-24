@@ -116,28 +116,24 @@ class _signUpPageState extends State<signUpPage> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text("Register", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 20),
-              Flexible(
-                child: TextFormField(
+          child: SingleChildScrollView(  // Add this instead of flexible
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text("Register", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 20),
+                TextFormField(
                   controller: _firstNameController,
                   decoration: const InputDecoration(hintText: 'First name'),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Flexible(
-                child: TextFormField(
+                const SizedBox(height: 20),
+                TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(hintText: 'Email'),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Flexible(
-                child: TextFormField(
+                const SizedBox(height: 20),
+                TextFormField(
                   controller: _passwordController,
                   obscureText: !_showPassword,
                   decoration: InputDecoration(
@@ -151,45 +147,43 @@ class _signUpPageState extends State<signUpPage> {
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 5),
-                child: FlutterPwValidator(
-                  controller: _passwordController,
-                  minLength: 8,
-                  uppercaseCharCount: 1,
-                  numericCharCount: 1,
-                  specialCharCount: 1,
-                  width: 400,
-                  height: 150,
-                  defaultColor: Colors.grey,
-                  successColor: Colors.green,
-                  failureColor: Colors.red,
-                  onSuccess: () => setState(() => _isPasswordValid = true),
-                  onFail: () => setState(() => _isPasswordValid = false),
+                Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: FlutterPwValidator(
+                    controller: _passwordController,
+                    minLength: 8,
+                    uppercaseCharCount: 1,
+                    numericCharCount: 1,
+                    specialCharCount: 1,
+                    width: 400,
+                    height: 150,
+                    defaultColor: Colors.grey,
+                    successColor: Colors.green,
+                    failureColor: Colors.red,
+                    onSuccess: () => setState(() => _isPasswordValid = true),
+                    onFail: () => setState(() => _isPasswordValid = false),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Flexible(
-                child: ElevatedButton(
+                const SizedBox(height: 20),
+                ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.lightGreenAccent),
                   onPressed: (_loading || !_isPasswordValid) ? null : signUp,
                   child: _loading ? CircularProgressIndicator(color: Colors.white) : const Text('Sign Up'),
                 ),
-              ),
-              if (_errorMessage.isNotEmpty) Text(_errorMessage, style: TextStyle(color: Colors.red)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Already a member?', style: TextStyle(color: Colors.grey[700])),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: widget.showLoginPage,
-                    child: const Text('Sign In', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ],
+                if (_errorMessage.isNotEmpty) Text(_errorMessage, style: TextStyle(color: Colors.red)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Already a member?', style: TextStyle(color: Colors.grey[700])),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: widget.showLoginPage,
+                      child: const Text('Sign In', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -105,7 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 ListTile(
                   leading: Icon(Icons.bar_chart),
-                  title: Text('Personal Progress', style: TextStyle(fontSize: 20)),
+                  title: Text('Activity', style: TextStyle(fontSize: 20)),
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(builder: (context) => FourthPage()));
                   },

@@ -217,13 +217,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
 
   void _updateLocation(Position position) { // Update the current location and marker on the map.
+    print("Updating location to: ${position.latitude}, ${position.longitude}"); // Debug statement
     setState(() { // Trigger a rebuild of the widget.
       _currentLocation = LatLng(position.latitude, position.longitude); // Update the current location.
       _updateMarker(position); // Update the marker on the map.
     });
-    if (!_paused) { // Move the camera to the current location if tracking is active.
-      _moveCameraToCurrentLocation(); // Move the camera to the current location.
-    }
+    // if (!_paused) { // Move the camera to the current location if tracking is active.
+    //   _moveCameraToCurrentLocation(); // Move the camera to the current location.
+    // }
+    _moveCameraToCurrentLocation(); // Move the camera to the current location.
   }
 
 
@@ -263,13 +265,14 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       }
       var locationSettings = const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
+        distanceFilter: 0, // was 1, then 5, now 0
       );
 
 
 
       _positionStreamSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
           .listen((Position position) {
+        print("Streamed new position: ${position.latitude}, ${position.longitude}"); // Debug statement
         if (_paused) return;
 
         final LatLng newLocation = LatLng(position.latitude, position.longitude);
@@ -300,9 +303,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
           }
         } else {
           _previousPositionTime = currentTime;
-          _lastTrackedLocation = newLocation;
-          setState(() {}); // Initial state update when no previous location exists
+          _lastTrackedLocation = newLocation;// Initial state update when no previous location exists
         }
+        _updateLocation(position);
+        setState(() {});
       });
 
 
@@ -335,14 +339,28 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
 
+  // void _moveCameraToCurrentLocation() async {
+  //   // Only move the camera if the controller is ready and neither tracking is active nor paused.
+  //   if (!_controller.isCompleted || _paused || _trackingStarted) return;
+  //
+  //   final GoogleMapController controller = await _controller.future;
+  //   if (_currentLocation != null) {
+  //     controller.animateCamera(CameraUpdate.newLatLngZoom(
+  //         _currentLocation!, 14));
+  //   }
+  // }
   void _moveCameraToCurrentLocation() async {
-    // Only move the camera if the controller is ready and neither tracking is active nor paused.
-    if (!_controller.isCompleted || _paused || _trackingStarted) return;
+    // Ensure the camera moves only if the controller is ready.
+    if (!_controller.isCompleted) return;
 
     final GoogleMapController controller = await _controller.future;
     if (_currentLocation != null) {
+      print("Moving camera to: ${_currentLocation?.latitude}, ${_currentLocation?.longitude}"); // Debug message
       controller.animateCamera(CameraUpdate.newLatLngZoom(
           _currentLocation!, 14));
+    }
+    else {
+      print("Current location is null, cannot move camera"); // Debug message
     }
   }
 
@@ -476,6 +494,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   void _updateMarker(Position position) async { // Update the location marker on the map to reflect the current position.
+    print("Updating marker for current location");
     for (int i = 0; i < _markers.length; i++) { // Iterate over the markers to find the current location marker.
       if (_markers.elementAt(i).markerId == const MarkerId("currentLocation")) { // Check if the marker ID matches the current location marker.
         _markers.remove(_markers.elementAt(i)); // Remove the current location marker.
