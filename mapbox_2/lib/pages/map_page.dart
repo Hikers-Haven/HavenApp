@@ -206,6 +206,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       print('Current Location: ${position.latitude}, ${position.longitude}');
       // Update the map location to reflect the new position.
       _updateLocation(position);
+      _moveCameraToCurrentLocation();
     } on PermissionDeniedException {
       print('Location permissions are denied');
     } on LocationServiceDisabledException {
@@ -225,7 +226,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     // if (!_paused) { // Move the camera to the current location if tracking is active.
     //   _moveCameraToCurrentLocation(); // Move the camera to the current location.
     // }
-    _moveCameraToCurrentLocation(); // Move the camera to the current location.
+    // _moveCameraToCurrentLocation(); // Move the camera to the current location.
+    if (_trackingStarted && !_paused) {
+      _moveCameraToCurrentLocation();
+    }
   }
 
 
@@ -357,7 +361,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     if (_currentLocation != null) {
       print("Moving camera to: ${_currentLocation?.latitude}, ${_currentLocation?.longitude}"); // Debug message
       controller.animateCamera(CameraUpdate.newLatLngZoom(
-          _currentLocation!, 14));
+          _currentLocation!, 16));
     }
     else {
       print("Current location is null, cannot move camera"); // Debug message
@@ -739,7 +743,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             mapType: MapType.normal,
             initialCameraPosition: CameraPosition(
               target: _currentLocation ?? LatLng(41.754469456020566, -88.34949396560636,), // Center the map on the current location if available. Otherwise, center on AU.
-              zoom: 14.0,
+              zoom: 16.0,
             ),
             style: _mapStyle,
             // Apply loaded style

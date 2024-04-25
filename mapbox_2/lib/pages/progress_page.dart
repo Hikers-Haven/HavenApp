@@ -218,7 +218,7 @@ class _FourthPageState extends State<FourthPage> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text("Fox Valley Cyclists"),
+          title: Text("Activity"),
           backgroundColor: Colors.lightGreen[300],
           actions: [
             IconButton(

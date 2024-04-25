@@ -38,7 +38,7 @@ class _SecondPageState extends State<SecondPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Fox Valley Cyclists"),
+        title: Text("Points of Interest"),
         backgroundColor: Colors.lightGreen[300],
         actions: [
           IconButton(
